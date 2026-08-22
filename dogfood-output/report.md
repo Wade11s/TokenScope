@@ -137,3 +137,20 @@ axe-core WCAG 2 A/AA 审计报告 1 个规则、4 个节点的明确失败：`#r
 - axe-core WCAG 2 A/AA：0 violations。控制台无错误。
 - `npm run check`：语法检查 + 49/49 测试通过。
 - 截图：`screenshots/wade-20/overview-final.png`、`overview-final-full.png`、`composition-model.png`、`composition-harness.png`。
+
+---
+
+## 2026-08-23 · 排行视图（WADE-21）
+
+`#/rank` 从占位升级为真实排行视图：视图内 Provider / Model / Harness 三分段切换重新排序（不路由、不刷新），行内展示名次、名称、相对榜首的份额条、用量与请求数；Model 行原地展开显示该模型在各 Harness 上的明细（来自既有 `groups` 数据）；Harness 行为链接直达 `#/harness/:name` 下钻（目的地仍为占位，待 WADE-23）。
+
+**验证内容**（agent-browser，1512×945 与 390×844）
+
+- 三分段切换重新渲染列表且 hash 保持 `#/rank`、`window` 标记保留（证明无整页刷新）；`aria-pressed` 与高亮同步；切换回 Model 后展开态按 tab 命名空间保留。
+- 份额条按 `knownTokens / 榜首` 比例渲染（openai 100%、moonshot 27%、xai 24%、deepseek 6%）；Model 展开明细内的子条相对该模型内最大 Harness（Codex 100%、Hermes 2%、Pi 1%）。
+- Model 行为原生 `<button>` + `aria-expanded`/`aria-controls`（指向真实明细节点），点击展开/收起焦点不丢失；明细行显示 Harness 显示名 + 用量 + 请求。
+- 下界语义：来源覆盖不完整时（仅 Copilot + 全部范围）用量与请求均显示 `≥` 前缀（`≥71.4万` / `≥2,152`）；完整数据无前缀。
+- Harness 行为 `<a href="#/harness/codex">` 等，显示名（Codex、Hermes Agent…）来自 `sources` 映射，点击进入下钻占位视图且导航高亮回到「排行」。
+- 顶部时间范围在排行视图内切换（7 天）正常重取并重渲染，tab 选择保持；控制台无错误；390px 宽度无横向溢出。
+- `npm run check`：语法检查 + 49/49 测试通过。
+- 截图：`screenshots/wade-21/rank-provider.png`、`rank-model-expanded.png`、`rank-harness.png`、`rank-lower-bound.png`、`rank-model-expanded-mobile.png`。

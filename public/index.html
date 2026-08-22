@@ -8,8 +8,8 @@
       content="TokenScope — 本机 AI coding harness 个人用量中心"
     />
     <title>TokenScope · 个人用量</title>
-    <link rel="stylesheet" href="/styles.css?v=11" />
-    <script src="/app.js?v=11" defer></script>
+    <link rel="stylesheet" href="/styles.css?v=12" />
+    <script src="/app.js?v=12" defer></script>
   </head>
   <body>
     <div class="page-shell">
@@ -148,12 +148,32 @@
           </div>
         </section>
 
-        <section class="view view-placeholder" id="view-rank" hidden aria-label="排行">
-          <div class="panel placeholder-panel">
-            <h2>排行</h2>
-            <p class="placeholder-range" id="rankRangeCaption">正在建立本地索引…</p>
-            <p class="placeholder-note">此视图待实现。</p>
+        <section class="view" id="view-rank" hidden aria-label="排行">
+          <div class="summary-section">
+            <div class="summary-head">
+              <h1>排行</h1>
+              <p id="rankRangeCaption">正在建立本地索引…</p>
+            </div>
           </div>
+
+          <article class="panel rank-panel">
+            <div class="panel-heading">
+              <h2>谁在前列</h2>
+              <div class="composition-toggle" role="group" aria-label="排行维度">
+                <button type="button" data-rank-tab="providers" class="active" aria-pressed="true">Provider</button>
+                <button type="button" data-rank-tab="models" aria-pressed="false">Model</button>
+                <button type="button" data-rank-tab="harnesses" aria-pressed="false">Harness</button>
+              </div>
+            </div>
+            <div class="rank-columns" aria-hidden="true">
+              <span>#</span>
+              <span id="rankDimensionLabel">Provider</span>
+              <span>份额</span>
+              <span>用量</span>
+              <span>请求</span>
+            </div>
+            <div class="rank-list" id="rankList"></div>
+          </article>
         </section>
 
         <section class="view view-placeholder" id="view-harness" hidden aria-label="Harness 下钻">

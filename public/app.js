@@ -7,6 +7,8 @@ const state = {
   breakdown: "providers",
   loading: false,
   activityDays: new Map(),
+  rankTab: "providers",
+  rankExpanded: new Set(),
 };
 
 const elements = {
@@ -15,6 +17,9 @@ const elements = {
   viewRank: document.querySelector("#view-rank"),
   viewHarness: document.querySelector("#view-harness"),
   rankRangeCaption: document.querySelector("#rankRangeCaption"),
+  rankDimensionLabel: document.querySelector("#rankDimensionLabel"),
+  rankTabs: document.querySelectorAll("[data-rank-tab]"),
+  rankList: document.querySelector("#rankList"),
   harnessRangeCaption: document.querySelector("#harnessRangeCaption"),
   harnessHeading: document.querySelector("#harnessHeading"),
   loadingLayer: document.querySelector("#loadingLayer"),
@@ -355,6 +360,190 @@ function renderBreakdown() {
   });
 }
 
+const RANK_DIMENSIONS = {
+  providers: "Provider",
+  models: "Model",
+  harnesses: "Harness",
+};
+
+function shareWidth(value, maximum) {
+  const percent = Math.round((value / maximum) * 100);
+  return `${Math.max(value > 0 ? 1 : 0, percent)}%`;
+}
+
+function appendUsageCells(target, row) {
+  const usage = document.createElement("span");
+  usage.className = "rank-usage";
+  usage.textContent = formatMetric(row.knownTokens, row.complete);
+  usage.title = `${formatKnown(row.knownTokens, row.complete)} token`;
+
+  const requests = document.createElement("span");
+  requests.className = "rank-requests";
+  requests.textContent = `${row.complete ? "" : "≥"}${formatFull(row.requests)}`;
+  requests.title = `${formatKnown(row.requests, row.complete)} 次请求`;
+
+  target.append(usage, requests);
+}
+
+function appendRankCells(target, { position, name, sub, title, row, maximum, expandable }) {
+  const rank = document.createElement("span");
+  rank.className = "rank-position";
+  rank.textContent = String(position + 1);
+
+  const nameBlock = document.createElement("span");
+  nameBlock.className = "rank-name";
+  const label = document.createElement("strong");
+  label.textContent = name;
+  if (title) label.title = title;
+  nameBlock.append(label);
+  if (expandable) {
+    const caret = document.createElement("i");
+    caret.className = "rank-caret";
+    caret.setAttribute("aria-hidden", "true");
+    nameBlock.append(caret);
+  }
+  if (sub) {
+    const detail = document.createElement("small");
+    detail.textContent = sub;
+    nameBlock.append(detail);
+  }
+
+  const bar = document.createElement("span");
+  bar.className = "rank-bar";
+  bar.setAttribute("role", "img");
+  bar.setAttribute(
+    "aria-label",
+    `份额为榜首行的 ${Math.max(0, Math.round((row.knownTokens / maximum) * 100))}%`,
+  );
+  const fill = document.createElement("i");
+  fill.style.width = shareWidth(row.knownTokens, maximum);
+  bar.append(fill);
+
+  target.append(rank, nameBlock, bar);
+  appendUsageCells(target, row);
+}
+
+function appendModelHarnessDetail(container, model, harnessNames) {
+  const parts = (state.report.groups || []).filter(
+    (group) => group.model === model.name && group.provider === model.provider,
+  );
+  const maximum = Math.max(...parts.map((part) => part.knownTokens), 1);
+  if (parts.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "rank-detail-empty";
+    empty.textContent = "暂无 Harness 明细。";
+    container.append(empty);
+    return;
+  }
+  parts.forEach((part) => {
+    const line = document.createElement("div");
+    line.className = "rank-detail-row";
+
+    const name = document.createElement("span");
+    name.className = "rank-detail-name";
+    name.textContent = harnessNames.get(part.harness) || part.harness;
+    name.title = part.harness;
+
+    const bar = document.createElement("span");
+    bar.className = "rank-bar rank-bar-detail";
+    bar.setAttribute("aria-hidden", "true");
+    const fill = document.createElement("i");
+    fill.style.width = shareWidth(part.knownTokens, maximum);
+    bar.append(fill);
+
+    line.append(name, bar);
+    appendUsageCells(line, part);
+    container.append(line);
+  });
+}
+
+function renderRank() {
+  if (!state.report) return;
+  const { range, summary } = state.report;
+  setText(
+    elements.rankRangeCaption,
+    `${formatDay(range.from)} — ${formatDay(range.to)} · ${formatFull(summary.sessions)} 个会话`,
+  );
+  setText(elements.rankDimensionLabel, RANK_DIMENSIONS[state.rankTab] || "Provider");
+
+  clear(elements.rankList);
+  const rows = state.report.breakdowns[state.rankTab] || [];
+  if (rows.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "empty-copy";
+    empty.textContent = "暂无排行数据。";
+    elements.rankList.append(empty);
+    return;
+  }
+
+  const maximum = Math.max(...rows.map((row) => row.knownTokens), 1);
+  const harnessNames = new Map(state.report.sources.map((source) => [source.id, source.name]));
+
+  rows.forEach((row, index) => {
+    const rowFrame = document.createElement("div");
+    rowFrame.className = "rank-row";
+
+    if (state.rankTab === "models") {
+      const key = `${row.provider}\u0000${row.name}`;
+      const detailId = `rank-detail-${state.rankTab}-${index}`;
+      const expanded = state.rankExpanded.has(key);
+      rowFrame.classList.add("rank-row-expandable");
+      rowFrame.classList.toggle("expanded", expanded);
+
+      const main = document.createElement("button");
+      main.type = "button";
+      main.className = "rank-row-main";
+      main.dataset.rankToggle = key;
+      main.setAttribute("aria-expanded", String(expanded));
+      main.setAttribute("aria-controls", detailId);
+      appendRankCells(main, {
+        position: index,
+        name: row.name,
+        sub: row.provider,
+        title: `${row.provider} / ${row.name}`,
+        row,
+        maximum,
+        expandable: true,
+      });
+
+      const detail = document.createElement("div");
+      detail.className = "rank-detail";
+      detail.id = detailId;
+      detail.hidden = !expanded;
+      appendModelHarnessDetail(detail, row, harnessNames);
+
+      rowFrame.append(main, detail);
+    } else if (state.rankTab === "harnesses") {
+      const main = document.createElement("a");
+      main.className = "rank-row-main rank-row-link";
+      main.href = `#/harness/${encodeURIComponent(row.name)}`;
+      main.title = `查看 ${harnessNames.get(row.name) || row.name} 下钻`;
+      appendRankCells(main, {
+        position: index,
+        name: harnessNames.get(row.name) || row.name,
+        title: row.name,
+        row,
+        maximum,
+        expandable: false,
+      });
+      rowFrame.append(main);
+    } else {
+      const main = document.createElement("div");
+      main.className = "rank-row-main rank-row-static";
+      appendRankCells(main, {
+        position: index,
+        name: row.name,
+        row,
+        maximum,
+        expandable: false,
+      });
+      rowFrame.append(main);
+    }
+
+    elements.rankList.append(rowFrame);
+  });
+}
+
 function coverageTooltip(source, statusText) {
   return [source.name, statusText, source.description, source.displayPath]
     .filter(Boolean)
@@ -434,9 +623,11 @@ function renderView() {
     render();
     return;
   }
-  const windowText = placeholderWindowText();
-  setText(elements.rankRangeCaption, windowText);
-  setText(elements.harnessRangeCaption, windowText);
+  if (state.route.view === "rank") {
+    renderRank();
+    return;
+  }
+  setText(elements.harnessRangeCaption, placeholderWindowText());
 }
 
 function parseHash(hash) {
@@ -572,6 +763,31 @@ document.querySelectorAll("[data-range]").forEach((button) => {
     });
     await loadReport();
   });
+});
+
+elements.rankTabs.forEach((button) => {
+  button.addEventListener("click", () => {
+    if (state.rankTab === button.dataset.rankTab) return;
+    state.rankTab = button.dataset.rankTab;
+    elements.rankTabs.forEach((item) => {
+      const active = item === button;
+      item.classList.toggle("active", active);
+      item.setAttribute("aria-pressed", String(active));
+    });
+    renderRank();
+  });
+});
+elements.rankList.addEventListener("click", (event) => {
+  const toggle = event.target.closest("[data-rank-toggle]");
+  if (!toggle) return;
+  const key = toggle.dataset.rankToggle;
+  const detail = document.getElementById(toggle.getAttribute("aria-controls"));
+  const expanded = state.rankExpanded.has(key);
+  if (expanded) state.rankExpanded.delete(key);
+  else state.rankExpanded.add(key);
+  toggle.setAttribute("aria-expanded", String(!expanded));
+  if (detail) detail.hidden = expanded;
+  toggle.closest(".rank-row")?.classList.toggle("expanded", !expanded);
 });
 
 elements.refreshButton.addEventListener("click", () => loadReport({ refresh: true }));
