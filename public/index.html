@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="TokenScope — 本机 AI coding harness 个人用量中心"
+    />
+    <title>TokenScope · 个人用量</title>
+    <link rel="stylesheet" href="/styles.css?v=5" />
+    <script src="/app.js?v=5" defer></script>
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="topbar">
+        <a class="brand" href="/" aria-label="TokenScope 个人用量首页">
+          <span class="brand-mark" aria-hidden="true">
+            <i></i><i></i><i></i>
+          </span>
+          <span>
+            <strong>TokenScope</strong>
+            <small>个人用量</small>
+          </span>
+        </a>
+
+        <div class="topbar-actions">
+          <span class="privacy-pill"><i></i>本机 · 不上传</span>
+          <div class="range-control" role="group" aria-label="统计时间范围">
+            <button type="button" data-range="today" aria-pressed="false">今天</button>
+            <button type="button" data-range="7d" aria-pressed="false">7 天</button>
+            <button type="button" data-range="30d" class="active" aria-pressed="true">30 天</button>
+            <button type="button" data-range="90d" aria-pressed="false">90 天</button>
+            <button type="button" data-range="all" aria-pressed="false">全部</button>
+          </div>
+          <button class="icon-button" id="refreshButton" type="button">
+            <span aria-hidden="true">↻</span>
+            刷新
+          </button>
+        </div>
+      </header>
+
+      <main>
+        <section class="summary-section" aria-label="个人用量摘要">
+          <div class="summary-head">
+            <h1>个人用量</h1>
+            <p id="rangeCaption">正在建立本地索引…</p>
+          </div>
+          <div class="metric-grid">
+            <article class="metric-card metric-primary">
+              <div class="metric-label">
+                <span>Token</span>
+                <span class="accuracy-badge" id="totalAccuracy">精确</span>
+              </div>
+              <div class="metric-value" id="totalTokens">—</div>
+            </article>
+
+            <article class="metric-card">
+              <div class="metric-label"><span>输入</span><b class="dot dot-lime"></b></div>
+              <div class="metric-value metric-value-small" id="inputTokens">—</div>
+              <p>含缓存读写</p>
+            </article>
+
+            <article class="metric-card">
+              <div class="metric-label"><span>输出</span><b class="dot dot-coral"></b></div>
+              <div class="metric-value metric-value-small" id="outputTokens">—</div>
+            </article>
+
+            <article class="metric-card">
+              <div class="metric-label"><span>缓存</span><b class="dot dot-blue"></b></div>
+              <div class="metric-value metric-value-small" id="cacheRate">—</div>
+              <p><span id="cacheTokens">—</span> 读取</p>
+            </article>
+
+            <article class="metric-card">
+              <div class="metric-label"><span>请求</span></div>
+              <div class="metric-value metric-value-small" id="requestCount">—</div>
+            </article>
+          </div>
+        </section>
+
+        <section class="dashboard-grid">
+          <article class="panel trend-panel">
+            <div class="panel-heading">
+              <h2>每日趋势</h2>
+              <div class="chart-legend" role="group" aria-label="图例">
+                <span><i class="legend-input"></i>输入</span>
+                <span><i class="legend-output"></i>输出</span>
+              </div>
+            </div>
+            <div class="chart-wrap">
+              <canvas id="trendChart" aria-label="每日 token 消耗柱状图"></canvas>
+              <p class="empty-state" id="trendEmpty" hidden>这个时间范围内还没有可见用量。</p>
+            </div>
+          </article>
+
+          <article class="panel breakdown-panel">
+            <div class="panel-heading">
+              <h2>构成</h2>
+              <select id="breakdownSelect" aria-label="构成维度">
+                <option value="providers">按 Provider</option>
+                <option value="models">按 Model</option>
+                <option value="harnesses">按 Harness</option>
+              </select>
+            </div>
+            <div class="breakdown-list" id="breakdownList"></div>
+          </article>
+        </section>
+
+        <section class="panel activity-panel" aria-label="用量活动">
+          <div class="panel-heading">
+            <h2>活动</h2>
+            <div class="activity-legend" aria-hidden="true">
+              <span>少</span>
+              <i class="level-0"></i><i class="level-1"></i><i class="level-2"></i><i class="level-3"></i><i class="level-4"></i>
+              <span>多</span>
+            </div>
+          </div>
+          <div class="activity-wrap">
+            <div class="activity-scroll">
+              <div class="activity-stack">
+                <div class="activity-months" id="activityMonths"></div>
+                <div class="activity-body">
+                  <div class="activity-weekdays" aria-hidden="true">
+                    <span>一</span><span></span><span>三</span><span></span><span>五</span><span></span><span></span>
+                  </div>
+                  <div class="activity-grid" id="activityGrid"></div>
+                </div>
+              </div>
+            </div>
+            <p class="activity-tooltip" id="activityTooltip" hidden></p>
+          </div>
+          <p class="activity-summary" id="activitySummary">—</p>
+        </section>
+
+        <section class="panel table-panel">
+          <div class="panel-heading table-heading">
+            <h2>模型明细</h2>
+            <label class="search-box">
+              <span aria-hidden="true">⌕</span>
+              <input
+                id="modelSearch"
+                type="search"
+                aria-label="筛选模型明细"
+                placeholder="筛选 harness、provider 或 model"
+              />
+            </label>
+          </div>
+          <div
+            class="table-scroll"
+            role="region"
+            tabindex="0"
+            aria-label="Harness、Provider 与 Model 用量明细，可横向滚动"
+          >
+            <table>
+              <thead>
+                <tr>
+                  <th>Harness</th>
+                  <th>Provider</th>
+                  <th>Model</th>
+                  <th class="numeric">输入</th>
+                  <th class="numeric">输出</th>
+                  <th class="numeric">缓存读取</th>
+                  <th class="numeric">总计</th>
+                  <th class="numeric">请求</th>
+                </tr>
+              </thead>
+              <tbody id="usageTable"></tbody>
+            </table>
+            <p class="table-empty" id="tableEmpty" hidden>暂无模型数据。</p>
+          </div>
+        </section>
+
+        <section class="sources-section">
+          <div class="section-heading">
+            <div>
+              <h2>Harness</h2>
+              <p class="section-hint">点击切换来源；缺字段时总量标为「至少」。</p>
+            </div>
+            <p id="scanMeta">等待扫描</p>
+          </div>
+          <div class="source-grid" id="sourceGrid"></div>
+        </section>
+      </main>
+
+      <footer>
+        <span>本机读取用量元数据，不上传日志，不读正文。</span>
+        <span id="lastUpdated">—</span>
+      </footer>
+    </div>
+
+    <div class="loading-layer" id="loadingLayer" role="status">
+      <div class="loader"></div>
+      <strong id="loadingTitle">正在扫描本机日志</strong>
+      <span>首次索引后只处理变化的文件。</span>
+    </div>
+    <div class="toast" id="toast" role="alert" hidden></div>
+  </body>
+</html>

@@ -1,0 +1,5 @@
+{"type":"session","version":3,"id":"omp-session","timestamp":"2026-08-18T08:00:00.000Z","cwd":"/private/example"}
+{"type":"model_change","id":"omp-model","parentId":null,"timestamp":"2026-08-18T08:00:01.000Z","provider":"xai-oauth","modelId":"grok-test"}
+{"type":"message","id":"omp-message","parentId":"omp-model","timestamp":"2026-08-18T08:00:02.000Z","message":{"role":"assistant","provider":"xai-oauth","model":"grok-test","responseId":"response-1","usage":{"input":100,"output":20,"cacheRead":40,"cacheWrite":5,"totalTokens":165,"reasoningTokens":7},"timestamp":1787020802000}}
+{"type":"custom","id":"omp-custom","parentId":"omp-message","timestamp":"2026-08-18T08:00:02.500Z","message":{"role":"assistant","provider":"xai-oauth","model":"grok-test","responseId":"response-1","usage":{"input":100,"output":20,"cacheRead":40,"cacheWrite":5,"totalTokens":165,"reasoningTokens":7}}}
+{"type":"compaction","id":"omp-compaction","parentId":"omp-message","timestamp":"2026-08-18T08:00:03.000Z","summary":"redacted fixture summary","usage":{"input":30,"output":6,"cacheRead":10,"cacheWrite":2,"totalTokens":48,"reasoningTokens":3}}

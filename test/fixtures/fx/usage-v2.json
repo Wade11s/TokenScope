@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "session_id": "fx-session-test",
+  "snapshot": {
+    "schema_version": 2,
+    "billing": "complete",
+    "input_tokens": 150,
+    "output_tokens": 40,
+    "cache_read_tokens": 30,
+    "cache_write_tokens": 5,
+    "reasoning_tokens": 8,
+    "request_count": 3,
+    "models": [
+      {
+        "model": "gateway/model-alpha",
+        "input_tokens": 100,
+        "output_tokens": 25,
+        "cache_read_tokens": 20,
+        "cache_write_tokens": 3,
+        "reasoning_tokens": 5,
+        "request_count": 2
+      },
+      {
+        "model": "gateway/model-beta",
+        "input_tokens": 50,
+        "output_tokens": 15,
+        "cache_read_tokens": 10,
+        "cache_write_tokens": 2,
+        "reasoning_tokens": 3,
+        "request_count": 1
+      }
+    ]
+  }
+}

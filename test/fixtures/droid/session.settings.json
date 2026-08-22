@@ -1,0 +1,29 @@
+{
+  "model": "claude-test",
+  "tokenUsage": {
+    "inputTokens": 100,
+    "outputTokens": 20,
+    "cacheReadTokens": 40,
+    "cacheCreationTokens": 5,
+    "thinkingTokens": 7,
+    "factoryCredits": 0
+  },
+  "inclusiveTokenUsage": {
+    "inputTokens": 250,
+    "outputTokens": 45,
+    "cacheReadTokens": 70,
+    "cacheCreationTokens": 9,
+    "thinkingTokens": 12,
+    "factoryCredits": 0
+  },
+  "childInclusiveTokenUsageBySessionId": {
+    "child-session": {
+      "inputTokens": 150,
+      "outputTokens": 25,
+      "cacheReadTokens": 30,
+      "cacheCreationTokens": 4,
+      "thinkingTokens": 5,
+      "factoryCredits": 0
+    }
+  }
+}

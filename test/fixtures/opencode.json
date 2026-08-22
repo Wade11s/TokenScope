@@ -1,0 +1,1 @@
+{"id":"opencode-message","sessionID":"opencode-session","role":"assistant","time":{"created":1787011200000},"modelID":"model-test","providerID":"provider-test","tokens":{"input":80,"output":22,"reasoning":3,"cache":{"read":30,"write":2}}}

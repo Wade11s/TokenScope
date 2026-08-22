@@ -1,0 +1,35 @@
+[
+  {
+    "model": "claude-test",
+    "tokenUsage": {
+      "inputTokens": 100,
+      "outputTokens": 20,
+      "cacheReadTokens": 40,
+      "cacheCreationTokens": 5,
+      "thinkingTokens": 7,
+      "factoryCredits": 0
+    }
+  },
+  {
+    "model": "claude-test",
+    "tokenUsage": {
+      "inputTokens": 100,
+      "outputTokens": 20,
+      "cacheReadTokens": 40,
+      "cacheCreationTokens": 5,
+      "thinkingTokens": 7,
+      "factoryCredits": 0
+    }
+  },
+  {
+    "model": "claude-test",
+    "tokenUsage": {
+      "inputTokens": 160,
+      "outputTokens": 35,
+      "cacheReadTokens": 60,
+      "cacheCreationTokens": 7,
+      "thinkingTokens": 10,
+      "factoryCredits": 0
+    }
+  }
+]

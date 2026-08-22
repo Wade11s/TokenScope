@@ -1,0 +1,11 @@
+{
+  "model": "gpt-test",
+  "inclusiveTokenUsage": {
+    "inputTokens": 80,
+    "outputTokens": 12,
+    "cacheReadTokens": 20,
+    "cacheCreationTokens": 2,
+    "thinkingTokens": 3,
+    "factoryCredits": 0
+  }
+}

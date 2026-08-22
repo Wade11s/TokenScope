@@ -1,0 +1,1 @@
+{"sessionId":"gemini-session","model":"gemini-test","startTime":"2026-08-18T05:00:00.000Z","messages":[{"id":"gemini-message","timestamp":"2026-08-18T05:00:01.000Z","model":"gemini-test","tokens":{"input":70,"output":15,"cached":20,"thoughts":4}}]}

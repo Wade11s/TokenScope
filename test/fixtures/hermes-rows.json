@@ -1,0 +1,14 @@
+[
+  {
+    "session_id": "hermes-session",
+    "model": "gpt-test",
+    "provider": "openai-codex",
+    "api_call_count": 3,
+    "input_tokens": 200,
+    "output_tokens": 30,
+    "cache_read_tokens": 80,
+    "cache_write_tokens": 10,
+    "reasoning_tokens": 9,
+    "usage_timestamp": 1787017202.5
+  }
+]

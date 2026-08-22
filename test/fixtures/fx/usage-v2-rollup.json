@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "session_id": "fx-session-rollup",
+  "snapshot": {
+    "schema_version": 2,
+    "billing": "incomplete",
+    "input_tokens": 80,
+    "output_tokens": 12,
+    "cache_read_tokens": 10,
+    "cache_write_tokens": 1,
+    "reasoning_tokens": 2,
+    "request_count": 1,
+    "models": []
+  }
+}
