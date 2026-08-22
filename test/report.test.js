@@ -89,6 +89,12 @@ test("report filters harnesses without changing source range totals", () => {
 
   assert.equal(report.summary.knownTokens, 110);
   assert.equal(report.summary.complete, true);
+  assert.deepEqual(
+    report.breakdowns.harnesses.map((harness) => harness.name),
+    ["codex"],
+  );
+  assert.deepEqual(report.daily.map((day) => day.day), ["2026-08-20"]);
+  assert.ok(report.groups.every((group) => group.harness === "codex"));
   assert.equal(report.sources.find((source) => source.id === "copilot").rangeKnownTokens, 20);
   assert.equal(report.sources.find((source) => source.id === "copilot").selected, false);
 });
