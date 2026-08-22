@@ -1,5 +1,6 @@
 const state = {
   range: "30d",
+  route: { view: "overview" },
   selectedHarnesses: new Set(),
   initialized: false,
   report: null,
@@ -10,6 +11,13 @@ const state = {
 };
 
 const elements = {
+  navLinks: document.querySelectorAll(".main-nav a"),
+  viewOverview: document.querySelector("#view-overview"),
+  viewRank: document.querySelector("#view-rank"),
+  viewHarness: document.querySelector("#view-harness"),
+  rankRangeCaption: document.querySelector("#rankRangeCaption"),
+  harnessRangeCaption: document.querySelector("#harnessRangeCaption"),
+  harnessHeading: document.querySelector("#harnessHeading"),
   loadingLayer: document.querySelector("#loadingLayer"),
   loadingTitle: document.querySelector("#loadingTitle"),
   refreshButton: document.querySelector("#refreshButton"),
@@ -189,13 +197,13 @@ function drawTrend() {
   for (let index = 0; index <= 4; index += 1) {
     const y = padding.top + (chartHeight / 4) * index;
     const value = maximum * (1 - index / 4);
-    context.strokeStyle = "rgba(22, 32, 25, 0.09)";
+    context.strokeStyle = "rgba(255, 255, 255, 0.07)";
     context.lineWidth = 1;
     context.beginPath();
     context.moveTo(padding.left, y + 0.5);
     context.lineTo(bounds.width - padding.right, y + 0.5);
     context.stroke();
-    context.fillStyle = "#7b817c";
+    context.fillStyle = "#8f988f";
     context.textAlign = "right";
     context.fillText(formatCompact(value), padding.left - 8, y);
   }
@@ -218,7 +226,7 @@ function drawTrend() {
   for (let index = 0; index < labelCount; index += 1) {
     indices.add(Math.round((index / Math.max(1, labelCount - 1)) * (data.length - 1)));
   }
-  context.fillStyle = "#7b817c";
+  context.fillStyle = "#8f988f";
   context.textBaseline = "top";
   for (const index of indices) {
     const x = padding.left + step * index + step / 2;
@@ -498,6 +506,94 @@ function render() {
   renderMeta();
 }
 
+function placeholderWindowText() {
+  const { range } = state.report;
+  return `${formatDay(range.from)} — ${formatDay(range.to)}`;
+}
+
+function renderView() {
+  if (!state.report) return;
+  if (state.route.view === "overview") {
+    render();
+    return;
+  }
+  const windowText = placeholderWindowText();
+  setText(elements.rankRangeCaption, windowText);
+  setText(elements.harnessRangeCaption, windowText);
+}
+
+function parseHash(hash) {
+  const raw = hash.replace(/^#/, "");
+  const path = (raw.length > 0 ? raw : "/").replace(/\/+$/, "") || "/";
+  if (path === "/") return { view: "overview" };
+  if (path === "/rank") return { view: "rank" };
+  const harness = path.match(/^\/harness(?:\/(.*))?$/);
+  if (harness) {
+    let name = "";
+    try {
+      name = decodeURIComponent(harness[1] || "").trim();
+    } catch {
+      return { redirect: "#/rank" };
+    }
+    if (name) return { view: "harness", name };
+    return { redirect: "#/rank" };
+  }
+  return { redirect: "#/" };
+}
+
+function knownHarness(name) {
+  const sources = state.report?.sources || [];
+  return sources.some(
+    (source) => source.id === name || source.name === name,
+  );
+}
+
+const VIEW_ELEMENTS = {
+  overview: "viewOverview",
+  rank: "viewRank",
+  harness: "viewHarness",
+};
+
+function applyRoute() {
+  const route = parseHash(location.hash);
+  if (route.redirect) {
+    location.replace(route.redirect);
+    return;
+  }
+  if (
+    route.view === "harness" &&
+    state.report &&
+    !knownHarness(route.name)
+  ) {
+    location.replace("#/rank");
+    return;
+  }
+  state.route = route;
+
+  for (const [view, key] of Object.entries(VIEW_ELEMENTS)) {
+    elements[key].hidden = route.view !== view;
+  }
+
+  const activeNav = route.view === "harness" ? "rank" : route.view;
+  elements.navLinks.forEach((link) => {
+    const active = link.dataset.nav === activeNav;
+    link.classList.toggle("active", active);
+    if (active) link.setAttribute("aria-current", "page");
+    else link.removeAttribute("aria-current");
+  });
+
+  if (route.view === "harness") {
+    setText(elements.harnessHeading, `下钻 · ${route.name}`);
+    document.title = `TokenScope · 下钻 · ${route.name}`;
+  } else if (route.view === "rank") {
+    document.title = "TokenScope · 排行";
+  } else {
+    document.title = "TokenScope · 个人用量";
+  }
+
+  renderView();
+}
+
 async function loadReport({ refresh = false } = {}) {
   if (state.loading) return;
   const firstLoad = !state.initialized;
@@ -521,7 +617,11 @@ async function loadReport({ refresh = false } = {}) {
       );
       state.initialized = true;
     }
-    render();
+    if (state.route.view === "harness" && !knownHarness(state.route.name)) {
+      location.replace("#/rank");
+      return;
+    }
+    renderView();
   } catch (error) {
     showToast(`扫描失败：${error.message}`);
   } finally {
@@ -587,4 +687,6 @@ if ("ResizeObserver" in window) {
   });
 }
 
+window.addEventListener("hashchange", applyRoute);
+applyRoute();
 loadReport();

@@ -105,3 +105,19 @@ axe-core WCAG 2 A/AA 审计报告 1 个规则、4 个节点的明确失败：`#r
   - Tooltip：活跃日显示日期 + token + 请求数（不完整数据显示 `≥`），空日期显示 “无用量”，future 单元格不触发，网格 mouseleave / 内部滚动时隐藏，首行自动翻转到下方，左右边界钳制在容器内。
   - 移动端热力图在面板内横向滚动，页面无横向溢出；网格为 `role="img"` + 动态 aria-label，月份/星期标签对屏幕阅读器隐藏。
 - 截图：`screenshots/token-activity-desktop.png`、`token-activity-tooltip.png`、`token-activity-mobile.png`。
+
+---
+
+## 2026-08-23 · 深色应用外壳：hash 路由 / 导航 / 统一时间范围（WADE-19）
+
+单页应用重构为三个 hash 路由视图：总览（`#/`）、排行（`#/rank`）、下钻（`#/harness/:name`），共享深色主题外壳（`color-scheme: dark`，lime 主强调 / coral 输出），排行与下钻视图内容为占位（后续 WADE-20/21/22 实现）。
+
+**验证内容**（agent-browser，1512×945）
+
+- 路由：三个视图切换均为 hash 内切换（`window` 标记在导航后保留，证明无整页刷新）；浏览器后退/前进正确恢复视图与导航高亮。
+- 重定向：`#/nonsense` → `#/`；`#/harness/` 与未知 harness（`#/harness/not-a-real-harness`）→ `#/rank`；畸形编码 `#/harness/%ZZ` 安全降级到 `#/rank`（不再抛 URIError）。
+- 导航高亮：总览/排行按路由高亮；下钻视图高亮「排行」（主入口），`aria-current="page"` 同步。
+- 时间范围：分段控件在三个视图均可触发重新取数（排行占位与下钻占位随 `7 天` 切换为 8月17日 — 8月23日），导航后选择保持（session 内持久）。
+- 主题：`body` 背景 `rgb(10,13,16)`、暗色 `color-scheme`、激活分段按钮 `#c9f36b`；页面色板与设计稿一致（#101018 / #080810 主导）。
+- `npm run check`：语法检查 + 49/49 测试通过。
+- 截图：`screenshots/wade-19/overview-final.png`、`rank-placeholder.png`、`harness-drilldown-final.png`。
