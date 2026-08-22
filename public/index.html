@@ -8,8 +8,8 @@
       content="TokenScope — 本机 AI coding harness 个人用量中心"
     />
     <title>TokenScope · 个人用量</title>
-    <link rel="stylesheet" href="/styles.css?v=6" />
-    <script src="/app.js?v=6" defer></script>
+    <link rel="stylesheet" href="/styles.css?v=11" />
+    <script src="/app.js?v=11" defer></script>
   </head>
   <body>
     <div class="page-shell">
@@ -54,33 +54,31 @@
             </div>
             <div class="metric-grid">
               <article class="metric-card metric-primary">
-                <div class="metric-label">
-                  <span>Token</span>
-                  <span class="accuracy-badge" id="totalAccuracy">精确</span>
-                </div>
+                <div class="metric-label"><span>Token</span></div>
+                <p class="metric-bound" id="totalAccuracy">至少</p>
                 <div class="metric-value" id="totalTokens">—</div>
               </article>
 
               <article class="metric-card">
-                <div class="metric-label"><span>输入</span><b class="dot dot-lime"></b></div>
-                <div class="metric-value metric-value-small" id="inputTokens">—</div>
+                <div class="metric-label"><span>输入</span></div>
+                <div class="metric-value" id="inputTokens">—</div>
                 <p>含缓存读写</p>
               </article>
 
               <article class="metric-card">
-                <div class="metric-label"><span>输出</span><b class="dot dot-coral"></b></div>
-                <div class="metric-value metric-value-small" id="outputTokens">—</div>
+                <div class="metric-label"><span>输出</span></div>
+                <div class="metric-value" id="outputTokens">—</div>
               </article>
 
               <article class="metric-card">
-                <div class="metric-label"><span>缓存</span><b class="dot dot-blue"></b></div>
-                <div class="metric-value metric-value-small" id="cacheRate">—</div>
+                <div class="metric-label"><span>缓存</span></div>
+                <div class="metric-value" id="cacheRate">—</div>
                 <p><span id="cacheTokens">—</span> 读取</p>
               </article>
 
               <article class="metric-card">
                 <div class="metric-label"><span>请求</span></div>
-                <div class="metric-value metric-value-small" id="requestCount">—</div>
+                <div class="metric-value" id="requestCount">—</div>
               </article>
             </div>
           </div>
@@ -103,23 +101,21 @@
             <article class="panel breakdown-panel">
               <div class="panel-heading">
                 <h2>构成</h2>
-                <select id="breakdownSelect" aria-label="构成维度">
-                  <option value="providers">按 Provider</option>
-                  <option value="models">按 Model</option>
-                  <option value="harnesses">按 Harness</option>
-                </select>
+                <div class="composition-toggle" role="group" aria-label="构成维度">
+                  <button type="button" data-breakdown="providers" class="active" aria-pressed="true">按 Provider</button>
+                  <button type="button" data-breakdown="models" aria-pressed="false">Model</button>
+                  <button type="button" data-breakdown="harnesses" aria-pressed="false">Harness</button>
+                </div>
               </div>
               <div class="breakdown-list" id="breakdownList"></div>
             </article>
           </div>
 
-          <div class="panel activity-panel" aria-label="用量活动">
-            <div class="panel-heading">
-              <h2>活动</h2>
-              <div class="activity-legend" aria-hidden="true">
-                <span>少</span>
-                <i class="level-0"></i><i class="level-1"></i><i class="level-2"></i><i class="level-3"></i><i class="level-4"></i>
-                <span>多</span>
+          <div class="panel activity-panel" role="region" aria-label="用量活动">
+            <div class="panel-heading activity-heading">
+              <div>
+                <h2>活动</h2>
+                <p class="activity-summary" id="activitySummary">—</p>
               </div>
             </div>
             <div class="activity-wrap">
@@ -136,56 +132,19 @@
               </div>
               <p class="activity-tooltip" id="activityTooltip" hidden></p>
             </div>
-            <p class="activity-summary" id="activitySummary">—</p>
-          </div>
-
-          <div class="panel table-panel">
-            <div class="panel-heading table-heading">
-              <h2>模型明细</h2>
-              <label class="search-box">
-                <span aria-hidden="true">⌕</span>
-                <input
-                  id="modelSearch"
-                  type="search"
-                  aria-label="筛选模型明细"
-                  placeholder="筛选 harness、provider 或 model"
-                />
-              </label>
-            </div>
-            <div
-              class="table-scroll"
-              role="region"
-              tabindex="0"
-              aria-label="Harness、Provider 与 Model 用量明细，可横向滚动"
-            >
-              <table>
-                <thead>
-                  <tr>
-                    <th>Harness</th>
-                    <th>Provider</th>
-                    <th>Model</th>
-                    <th class="numeric">输入</th>
-                    <th class="numeric">输出</th>
-                    <th class="numeric">缓存读取</th>
-                    <th class="numeric">总计</th>
-                    <th class="numeric">请求</th>
-                  </tr>
-                </thead>
-                <tbody id="usageTable"></tbody>
-              </table>
-              <p class="table-empty" id="tableEmpty" hidden>暂无模型数据。</p>
+            <div class="activity-legend" aria-hidden="true">
+              <span>少</span>
+              <i class="level-0"></i><i class="level-1"></i><i class="level-2"></i><i class="level-3"></i><i class="level-4"></i>
+              <span>多</span>
             </div>
           </div>
 
-          <div class="sources-section">
-            <div class="section-heading">
-              <div>
-                <h2>Harness</h2>
-                <p class="section-hint">点击切换来源；缺字段时总量标为「至少」。</p>
-              </div>
+          <div class="panel harness-panel">
+            <div class="panel-heading">
+              <h2>Harness</h2>
               <p id="scanMeta">等待扫描</p>
             </div>
-            <div class="source-grid" id="sourceGrid"></div>
+            <div class="harness-list" id="sourceGrid"></div>
           </div>
         </section>
 

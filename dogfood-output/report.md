@@ -121,3 +121,19 @@ axe-core WCAG 2 A/AA 审计报告 1 个规则、4 个节点的明确失败：`#r
 - 主题：`body` 背景 `rgb(10,13,16)`、暗色 `color-scheme`、激活分段按钮 `#c9f36b`；页面色板与设计稿一致（#101018 / #080810 主导）。
 - `npm run check`：语法检查 + 49/49 测试通过。
 - 截图：`screenshots/wade-19/overview-final.png`、`rank-placeholder.png`、`harness-drilldown-final.png`。
+
+---
+
+## 2026-08-23 · 总览视图（WADE-20）
+
+`#/` 总览从旧单页迁入五个指标卡、每日趋势、构成切换、12 个月活动热力图，以及仅含复选框与用量的紧凑 Harness 块。模型明细表移出总览（留给排行）。缓存率在来源不完整时仍按可见输入正常显示。
+
+**验证内容**（agent-browser）
+
+- 五个指标卡从 `/api/usage` 实时渲染：Token / 输入 / 输出带 `≥`，「至少」标注，缓存率 `96.7%` 正常显示，请求带 `≥`。
+- 构成 `按 Provider` / `Model` / `Harness` 分段切换不重新请求（`window.fetch` 计数保持 0；`window.__overviewProbe` 保持 1）。
+- Harness 复选框取消 Cursor / Copilot / Droid / fx 后，「至少」变为「精确」，`≥` 前缀消失；再取消 Codex，总量从 17.2 亿变为 7.3 亿，构成首位变为 hermes。覆盖信息只出现在 tooltip。
+- 热力图在「今天」范围下仍为过去 12 个月、371 格、12 个月份标签；范围文案变为「8月23日 — 8月23日」。
+- axe-core WCAG 2 A/AA：0 violations。控制台无错误。
+- `npm run check`：语法检查 + 49/49 测试通过。
+- 截图：`screenshots/wade-20/overview-final.png`、`overview-final-full.png`、`composition-model.png`、`composition-harness.png`。

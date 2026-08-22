@@ -4,7 +4,6 @@ const state = {
   selectedHarnesses: new Set(),
   initialized: false,
   report: null,
-  search: "",
   breakdown: "providers",
   loading: false,
   activityDays: new Map(),
@@ -37,11 +36,8 @@ const elements = {
   activitySummary: document.querySelector("#activitySummary"),
   activityWrap: document.querySelector(".activity-wrap"),
   activityScroll: document.querySelector(".activity-scroll"),
-  breakdownSelect: document.querySelector("#breakdownSelect"),
+  breakdownButtons: document.querySelectorAll("[data-breakdown]"),
   breakdownList: document.querySelector("#breakdownList"),
-  modelSearch: document.querySelector("#modelSearch"),
-  usageTable: document.querySelector("#usageTable"),
-  tableEmpty: document.querySelector("#tableEmpty"),
   sourceGrid: document.querySelector("#sourceGrid"),
   scanMeta: document.querySelector("#scanMeta"),
   lastUpdated: document.querySelector("#lastUpdated"),
@@ -66,22 +62,6 @@ const timeFormatter = new Intl.DateTimeFormat("zh-CN", {
   hour: "2-digit",
   minute: "2-digit",
 });
-
-const sourceInitials = {
-  codex: "CX",
-  claude: "CL",
-  pi: "PI",
-  omp: "OMP",
-  hermes: "HM",
-  kimi: "KM",
-  grok: "GK",
-  copilot: "GH",
-  continue: "CT",
-  opencode: "OC",
-  gemini: "GM",
-  cursor: "CR",
-  aider: "AI",
-};
 
 const statusLabels = {
   ready: "完整",
@@ -152,9 +132,7 @@ function renderSummary() {
   );
   setText(
     elements.cacheRate,
-    summary.inputKnown && summary.inputTokens
-      ? `${(summary.cacheRate * 100).toFixed(1)}%`
-      : "—",
+    summary.inputTokens ? `${(summary.cacheRate * 100).toFixed(1)}%` : "—",
   );
   setText(
     elements.cacheTokens,
@@ -162,7 +140,7 @@ function renderSummary() {
   );
   elements.cacheRate.title = summary.inputKnown
     ? "可见输入 token 中的缓存读取占比"
-    : "输入 token 不完整，无法确定整体缓存率";
+    : "输入不完整时仍按可见输入计算缓存率";
   setText(
     elements.rangeCaption,
     `${formatDay(range.from)} — ${formatDay(range.to)} · ${formatFull(summary.sessions)} 个会话`,
@@ -342,7 +320,7 @@ function renderBreakdown() {
   const maximum = Math.max(...visible.map((item) => item.knownTokens), 1);
   if (visible.length === 0) {
     const empty = document.createElement("p");
-    empty.className = "table-empty";
+    empty.className = "empty-copy";
     empty.textContent = "暂无构成数据。";
     elements.breakdownList.append(empty);
     return;
@@ -377,62 +355,10 @@ function renderBreakdown() {
   });
 }
 
-function cell(text, className) {
-  const value = document.createElement("td");
-  if (className) value.className = className;
-  value.textContent = text;
-  return value;
-}
-
-function renderTable() {
-  clear(elements.usageTable);
-  const query = state.search.trim().toLocaleLowerCase();
-  const groups = state.report.groups.filter((group) => {
-    if (!query) return true;
-    return [group.harness, group.provider, group.model].some((value) =>
-      value.toLocaleLowerCase().includes(query),
-    );
-  });
-  setText(elements.tableEmpty, query ? "没有匹配的模型。" : "暂无模型数据。");
-  elements.tableEmpty.hidden = groups.length > 0;
-
-  for (const group of groups) {
-    const row = document.createElement("tr");
-    const harnessCell = document.createElement("td");
-    const harnessTag = document.createElement("span");
-    harnessTag.className = "harness-tag";
-    harnessTag.textContent = group.harness;
-    harnessCell.append(harnessTag);
-
-    const providerCell = document.createElement("td");
-    providerCell.append(document.createTextNode(group.provider));
-    if (group.providerInferred) {
-      const inferred = document.createElement("span");
-      inferred.className = "coverage-tag";
-      inferred.textContent = "推断";
-      inferred.title = "Provider 由当前 harness 配置或模型名称推断";
-      providerCell.append(inferred);
-    }
-
-    const modelCell = document.createElement("td");
-    const modelName = document.createElement("span");
-    modelName.className = "model-name";
-    modelName.textContent = group.model;
-    modelName.title = group.model;
-    modelCell.append(modelName);
-
-    row.append(
-      harnessCell,
-      providerCell,
-      modelCell,
-      cell(formatKnown(group.inputTokens, group.inputKnown), "numeric"),
-      cell(formatKnown(group.outputTokens, group.outputKnown), "numeric"),
-      cell(formatFull(group.cacheReadTokens), "numeric"),
-      cell(`${group.complete ? "" : "≥"}${formatFull(group.knownTokens)}`, "numeric"),
-      cell(formatFull(group.requests), "numeric"),
-    );
-    elements.usageTable.append(row);
-  }
+function coverageTooltip(source, statusText) {
+  return [source.name, statusText, source.description, source.displayPath]
+    .filter(Boolean)
+    .join("\n");
 }
 
 function renderSources() {
@@ -443,44 +369,36 @@ function renderSources() {
     const tokenText = source.rangeKnownTokens
       ? `${source.rangeComplete ? "" : "≥"}${formatCompact(source.rangeKnownTokens)}`
       : "—";
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = `source-card source-${source.id}`;
-    button.classList.toggle("selected", selected);
-    button.setAttribute("aria-pressed", selected);
-    button.title = `${source.description}\n${source.displayPath}`;
-    button.setAttribute(
+    const tooltip = coverageTooltip(source, statusText);
+    const item = document.createElement("label");
+    item.className = `harness-item source-${source.id}`;
+    item.classList.toggle("selected", selected);
+    item.title = tooltip;
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.checked = selected;
+    checkbox.setAttribute(
       "aria-label",
-      `${source.name}，${statusText}，${tokenText} token${selected ? "，已选中" : "，未选中"}`,
+      `${source.name}，${tokenText} token${selected ? "，已选中" : "，未选中"}`,
     );
+    checkbox.title = tooltip;
+    checkbox.addEventListener("change", (event) => {
+      event.preventDefault();
+      toggleSource(source.id);
+    });
 
-    const icon = document.createElement("span");
-    icon.className = "source-icon";
-    icon.setAttribute("aria-hidden", "true");
-    icon.textContent = sourceInitials[source.id] || source.name.slice(0, 2);
-
-    const copy = document.createElement("span");
-    copy.className = "source-copy";
-    const name = document.createElement("strong");
+    const name = document.createElement("span");
+    name.className = "harness-name";
     name.textContent = source.name;
-    const sourcePath = document.createElement("small");
-    sourcePath.textContent = source.displayPath;
-    copy.append(name, sourcePath);
 
-    const sourceValue = document.createElement("span");
-    sourceValue.className = "source-value";
-    sourceValue.setAttribute("aria-hidden", "true");
-    const tokens = document.createElement("strong");
-    tokens.textContent = tokenText;
-    const status = document.createElement("small");
-    const statusDot = document.createElement("i");
-    statusDot.className = `status-dot ${source.status}`;
-    status.append(statusDot, document.createTextNode(statusText));
-    sourceValue.append(tokens, status);
-    button.append(icon, copy, sourceValue);
+    const usage = document.createElement("span");
+    usage.className = "harness-usage";
+    usage.textContent = tokenText;
+    usage.setAttribute("aria-hidden", "true");
 
-    button.addEventListener("click", () => toggleSource(source.id));
-    elements.sourceGrid.append(button);
+    item.append(checkbox, name, usage);
+    elements.sourceGrid.append(item);
   });
 }
 
@@ -501,7 +419,6 @@ function render() {
   drawTrend();
   renderActivity();
   renderBreakdown();
-  renderTable();
   renderSources();
   renderMeta();
 }
@@ -621,13 +538,13 @@ async function loadReport({ refresh = false } = {}) {
       location.replace("#/rank");
       return;
     }
-    renderView();
   } catch (error) {
     showToast(`扫描失败：${error.message}`);
   } finally {
     setLoading(false, firstLoad);
     setText(elements.loadingTitle, "正在扫描本机日志");
   }
+  if (state.report) renderView();
 }
 
 async function toggleSource(sourceId) {
@@ -635,6 +552,7 @@ async function toggleSource(sourceId) {
   if (state.selectedHarnesses.has(sourceId)) {
     if (state.selectedHarnesses.size === 1) {
       showToast("至少保留一个 Harness。你也可以选择一个暂无数据的来源查看空状态。");
+      renderSources();
       return;
     }
     state.selectedHarnesses.delete(sourceId);
@@ -664,13 +582,17 @@ elements.activityGrid.addEventListener("mouseover", (event) => {
 });
 elements.activityGrid.addEventListener("mouseleave", hideActivityTooltip);
 elements.activityScroll.addEventListener("scroll", hideActivityTooltip, { passive: true });
-elements.breakdownSelect.addEventListener("change", () => {
-  state.breakdown = elements.breakdownSelect.value;
-  renderBreakdown();
-});
-elements.modelSearch.addEventListener("input", () => {
-  state.search = elements.modelSearch.value;
-  renderTable();
+elements.breakdownButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    if (state.breakdown === button.dataset.breakdown) return;
+    state.breakdown = button.dataset.breakdown;
+    elements.breakdownButtons.forEach((item) => {
+      const active = item === button;
+      item.classList.toggle("active", active);
+      item.setAttribute("aria-pressed", String(active));
+    });
+    renderBreakdown();
+  });
 });
 
 if ("ResizeObserver" in window) {
