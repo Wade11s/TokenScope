@@ -327,6 +327,14 @@ function showActivityTooltip(cell) {
   }px`;
 }
 
+function sourceNameMap() {
+  return new Map((state.report?.sources || []).map((source) => [source.id, source.name]));
+}
+
+function harnessHref(name) {
+  return `#/harness/${encodeURIComponent(name)}`;
+}
+
 function renderBreakdown() {
   clear(elements.breakdownList);
   const items = state.report.breakdowns[state.breakdown] || [];
@@ -340,17 +348,26 @@ function renderBreakdown() {
     return;
   }
 
+  const clickable = state.breakdown === "harnesses";
+  const harnessNames = clickable ? sourceNameMap() : null;
+
   visible.forEach((item, index) => {
-    const row = document.createElement("div");
+    const row = document.createElement(clickable ? "a" : "div");
     row.className = `breakdown-row palette-${index % 7}`;
+    const displayName = clickable ? harnessNames.get(item.name) || item.name : item.name;
+    if (clickable) {
+      row.classList.add("breakdown-row-link");
+      row.href = harnessHref(item.name);
+      row.title = `查看 ${displayName} 下钻`;
+    }
 
     const name = document.createElement("div");
     name.className = "breakdown-name";
     const swatch = document.createElement("span");
     swatch.className = "breakdown-swatch";
     const label = document.createElement("span");
-    label.textContent = item.name;
-    label.title = state.breakdown === "models" ? `${item.provider} / ${item.name}` : item.name;
+    label.textContent = displayName;
+    label.title = state.breakdown === "models" ? `${item.provider} / ${item.name}` : displayName;
     name.append(swatch, label);
 
     const value = document.createElement("span");
@@ -362,7 +379,7 @@ function renderBreakdown() {
     progress.value = item.knownTokens;
     progress.setAttribute(
       "aria-label",
-      `${item.name} ${item.complete ? "" : "至少 "}${formatFull(item.knownTokens)} token`,
+      `${displayName} ${item.complete ? "" : "至少 "}${formatFull(item.knownTokens)} token`,
     );
     row.append(name, value, progress);
     elements.breakdownList.append(row);
@@ -486,7 +503,7 @@ function renderRank() {
   }
 
   const maximum = Math.max(...rows.map((row) => row.knownTokens), 1);
-  const harnessNames = new Map(state.report.sources.map((source) => [source.id, source.name]));
+  const harnessNames = sourceNameMap();
 
   rows.forEach((row, index) => {
     const rowFrame = document.createElement("div");
@@ -525,7 +542,7 @@ function renderRank() {
     } else if (state.rankTab === "harnesses") {
       const main = document.createElement("a");
       main.className = "rank-row-main rank-row-link";
-      main.href = `#/harness/${encodeURIComponent(row.name)}`;
+      main.href = harnessHref(row.name);
       main.title = `查看 ${harnessNames.get(row.name) || row.name} 下钻`;
       appendRankCells(main, {
         position: index,
