@@ -176,12 +176,53 @@
           </article>
         </section>
 
-        <section class="view view-placeholder" id="view-harness" hidden aria-label="Harness 下钻">
-          <div class="panel placeholder-panel">
-            <h2 id="harnessHeading">下钻</h2>
-            <p class="placeholder-range" id="harnessRangeCaption">正在建立本地索引…</p>
-            <p class="placeholder-note">此视图待实现。</p>
+        <section class="view" id="view-harness" hidden aria-label="Harness 下钻">
+          <div class="summary-section">
+            <div class="summary-head">
+              <h1 id="harnessHeading">下钻</h1>
+              <p id="harnessSubtitle">正在建立本地索引…</p>
+            </div>
           </div>
+
+          <div class="metric-grid">
+            <article class="metric-card metric-primary">
+              <div class="metric-label"><span>Token</span></div>
+              <p class="metric-bound" id="harnessAccuracy">至少</p>
+              <div class="metric-value" id="harnessTokens">—</div>
+              <p>可见输入 + 输出 token 合计</p>
+            </article>
+            <article class="metric-card">
+              <div class="metric-label"><span>Input</span></div>
+              <div class="metric-value" id="harnessInputTokens">—</div>
+              <p id="harnessCacheNote">缓存读取 —</p>
+            </article>
+            <article class="metric-card">
+              <div class="metric-label"><span>Output</span></div>
+              <div class="metric-value" id="harnessOutputTokens">—</div>
+              <p>模型生成输出</p>
+            </article>
+          </div>
+
+          <article class="panel rank-panel">
+            <div class="panel-heading">
+              <h2>Provider 构成</h2>
+              <p class="panel-caption" id="harnessRangeCaption"></p>
+            </div>
+            <div class="breakdown-list" id="harnessProviders"></div>
+          </article>
+
+          <article class="panel rank-panel">
+            <div class="panel-heading">
+              <h2>Model 明细</h2>
+            </div>
+            <div class="rank-columns" aria-hidden="true">
+              <span>Model</span>
+              <span>Provider</span>
+              <span>用量</span>
+              <span>请求</span>
+            </div>
+            <div class="rank-list" id="harnessModels"></div>
+          </article>
         </section>
       </main>
 

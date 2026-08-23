@@ -9,6 +9,7 @@ const state = {
   activityDays: new Map(),
   rankTab: "providers",
   rankExpanded: new Set(),
+  drilldown: null,
 };
 
 const elements = {
@@ -21,7 +22,15 @@ const elements = {
   rankTabs: document.querySelectorAll("[data-rank-tab]"),
   rankList: document.querySelector("#rankList"),
   harnessRangeCaption: document.querySelector("#harnessRangeCaption"),
+  harnessSubtitle: document.querySelector("#harnessSubtitle"),
   harnessHeading: document.querySelector("#harnessHeading"),
+  harnessAccuracy: document.querySelector("#harnessAccuracy"),
+  harnessTokens: document.querySelector("#harnessTokens"),
+  harnessInputTokens: document.querySelector("#harnessInputTokens"),
+  harnessCacheNote: document.querySelector("#harnessCacheNote"),
+  harnessOutputTokens: document.querySelector("#harnessOutputTokens"),
+  harnessProviders: document.querySelector("#harnessProviders"),
+  harnessModels: document.querySelector("#harnessModels"),
   loadingLayer: document.querySelector("#loadingLayer"),
   loadingTitle: document.querySelector("#loadingTitle"),
   refreshButton: document.querySelector("#refreshButton"),
@@ -612,9 +621,146 @@ function render() {
   renderMeta();
 }
 
-function placeholderWindowText() {
-  const { range } = state.report;
-  return `${formatDay(range.from)} — ${formatDay(range.to)}`;
+function renderHarness() {
+  const report = state.drilldown;
+  if (!report || state.route.view !== "harness") return;
+  const { range, summary } = report;
+
+  const displayName = harnessDisplayName(state.route.name) || state.route.name;
+  setText(elements.harnessHeading, `下钻 · ${displayName}`);
+  document.title = `TokenScope · 下钻 · ${displayName}`;
+
+  setText(
+    elements.harnessRangeCaption,
+    `${formatDay(range.from)} — ${formatDay(range.to)}`,
+  );
+  setText(
+    elements.harnessSubtitle,
+    [
+      `${summary.complete ? "" : "≥"}${formatFull(summary.sessions)} 个会话`,
+      `${summary.complete ? "" : "≥"}${formatFull(summary.requests)} 次请求`,
+      summary.inputTokens
+        ? `缓存率 ${(summary.cacheRate * 100).toFixed(1)}%`
+        : "缓存率 —",
+    ].join(" · "),
+  );
+
+  setText(
+    elements.harnessAccuracy,
+    summary.complete ? "精确" : "至少",
+  );
+  elements.harnessAccuracy.classList.toggle("partial", !summary.complete);
+  setText(
+    elements.harnessTokens,
+    `${summary.complete ? "" : "≥"}${formatCompact(summary.knownTokens)}`,
+  );
+  setText(elements.harnessInputTokens, formatMetric(summary.inputTokens, summary.inputKnown));
+  setText(elements.harnessOutputTokens, formatMetric(summary.outputTokens, summary.outputKnown));
+  elements.harnessInputTokens.title = formatKnown(summary.inputTokens, summary.inputKnown);
+  elements.harnessOutputTokens.title = formatKnown(summary.outputTokens, summary.outputKnown);
+  setText(
+    elements.harnessCacheNote,
+    summary.inputTokens
+      ? `缓存读取 ${formatMetric(summary.cacheReadTokens, summary.inputKnown)}`
+      : "缓存读取 —",
+  );
+
+  clear(elements.harnessProviders);
+  const providers = report.breakdowns.providers || [];
+  if (providers.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "empty-copy";
+    empty.textContent = "暂无 Provider 数据。";
+    elements.harnessProviders.append(empty);
+  } else {
+    const maximum = Math.max(...providers.map((item) => item.knownTokens), 1);
+    providers.forEach((item, index) => {
+      const row = document.createElement("div");
+      row.className = `breakdown-row palette-${index % 7}`;
+
+      const name = document.createElement("div");
+      name.className = "breakdown-name";
+      const swatch = document.createElement("span");
+      swatch.className = "breakdown-swatch";
+      const label = document.createElement("span");
+      label.textContent = item.name;
+      name.append(swatch, label);
+
+      const value = document.createElement("span");
+      value.className = "breakdown-value";
+      value.textContent = `${item.complete ? "" : "≥"}${formatCompact(item.knownTokens)}`;
+
+      const progress = document.createElement("progress");
+      progress.max = maximum;
+      progress.value = item.knownTokens;
+      progress.setAttribute(
+        "aria-label",
+        `${item.name} ${item.complete ? "" : "至少 "}${formatFull(item.knownTokens)} token`,
+      );
+      row.append(name, value, progress);
+      elements.harnessProviders.append(row);
+    });
+  }
+
+  clear(elements.harnessModels);
+  const models = report.breakdowns.models || [];
+  if (models.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "empty-copy";
+    empty.textContent = "暂无 Model 数据。";
+    elements.harnessModels.append(empty);
+    return;
+  }
+  models.forEach((row) => {
+    const frame = document.createElement("div");
+    frame.className = "rank-row";
+
+    const main = document.createElement("div");
+    main.className = "rank-row-main rank-row-static harness-model-row";
+
+    const name = document.createElement("span");
+    name.className = "harness-model-name";
+    name.textContent = row.name;
+    name.title = `${row.provider} / ${row.name}`;
+
+    const provider = document.createElement("span");
+    provider.className = "harness-model-provider";
+    provider.textContent = row.provider;
+
+    main.append(
+      name,
+      provider,
+      ...(() => {
+        const usage = document.createElement("span");
+        usage.className = "rank-usage";
+        usage.textContent = formatMetric(row.knownTokens, row.complete);
+        usage.title = `${formatKnown(row.knownTokens, row.complete)} token`;
+        const requests = document.createElement("span");
+        requests.className = "rank-requests";
+        requests.textContent = `${row.complete ? "" : "≥"}${formatFull(row.requests)}`;
+        requests.title = `${formatKnown(row.requests, row.complete)} 次请求`;
+        return [usage, requests];
+      })(),
+    );
+    frame.append(main);
+    elements.harnessModels.append(frame);
+  });
+}
+
+async function loadDrilldown() {
+  const name = state.route.view === "harness" ? state.route.name : null;
+  if (!name) return;
+  const parameters = new URLSearchParams({ range: state.range, harness: name });
+  try {
+    const response = await fetch(`/api/usage?${parameters}`);
+    const value = await response.json();
+    if (!response.ok) throw new Error(value.detail || value.error || "读取失败");
+    state.drilldown = value;
+  } catch (error) {
+    showToast(`读取下钻数据失败：${error.message}`);
+    return;
+  }
+  renderHarness();
 }
 
 function renderView() {
@@ -627,7 +773,7 @@ function renderView() {
     renderRank();
     return;
   }
-  setText(elements.harnessRangeCaption, placeholderWindowText());
+  renderHarness();
 }
 
 function parseHash(hash) {
@@ -654,6 +800,12 @@ function knownHarness(name) {
   return sources.some(
     (source) => source.id === name || source.name === name,
   );
+}
+
+function harnessDisplayName(name) {
+  const sources = state.report?.sources || [];
+  const source = sources.find((item) => item.id === name || item.name === name);
+  return source?.name || "";
 }
 
 const VIEW_ELEMENTS = {
@@ -691,8 +843,9 @@ function applyRoute() {
   });
 
   if (route.view === "harness") {
-    setText(elements.harnessHeading, `下钻 · ${route.name}`);
-    document.title = `TokenScope · 下钻 · ${route.name}`;
+    setText(elements.harnessHeading, `下钻 · ${state.report ? (harnessDisplayName(route.name) || route.name) : route.name}`);
+    document.title = `TokenScope · 下钻 · ${harnessDisplayName(route.name) || route.name}`;
+    loadDrilldown();
   } else if (route.view === "rank") {
     document.title = "TokenScope · 排行";
   } else {
@@ -762,6 +915,7 @@ document.querySelectorAll("[data-range]").forEach((button) => {
       item.setAttribute("aria-pressed", String(item === button));
     });
     await loadReport();
+    if (state.route.view === "harness") await loadDrilldown();
   });
 });
 
