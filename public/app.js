@@ -113,6 +113,10 @@ function setText(element, value) {
   element.textContent = value;
 }
 
+function t(key) {
+  return window.tokenscopeI18n ? window.tokenscopeI18n.t(key) : key;
+}
+
 function clear(element) {
   while (element.firstChild) element.firstChild.remove();
 }
@@ -645,7 +649,7 @@ function renderHarness() {
 
   const displayName = harnessDisplayName(state.route.name) || state.route.name;
   setText(elements.harnessHeading, `下钻 · ${displayName}`);
-  document.title = `TokenScope · 下钻 · ${displayName}`;
+  document.title = `${t("title.drilldown")} · ${displayName}`;
 
   setText(
     elements.harnessRangeCaption,
@@ -831,6 +835,17 @@ const VIEW_ELEMENTS = {
   harness: "viewHarness",
 };
 
+function applyDocumentTitle() {
+  if (state.route.view === "harness") {
+    const name = harnessDisplayName(state.route.name) || state.route.name;
+    document.title = `${t("title.drilldown")} · ${name}`;
+  } else if (state.route.view === "rank") {
+    document.title = t("title.rank");
+  } else {
+    document.title = t("title.overview");
+  }
+}
+
 function applyRoute() {
   const route = parseHash(location.hash);
   if (route.redirect) {
@@ -861,13 +876,9 @@ function applyRoute() {
 
   if (route.view === "harness") {
     setText(elements.harnessHeading, `下钻 · ${state.report ? (harnessDisplayName(route.name) || route.name) : route.name}`);
-    document.title = `TokenScope · 下钻 · ${harnessDisplayName(route.name) || route.name}`;
     loadDrilldown();
-  } else if (route.view === "rank") {
-    document.title = "TokenScope · 排行";
-  } else {
-    document.title = "TokenScope · 个人用量";
   }
+  applyDocumentTitle();
 
   renderView();
 }
@@ -997,5 +1008,9 @@ if ("ResizeObserver" in window) {
 }
 
 window.addEventListener("hashchange", applyRoute);
+document.addEventListener("tokenscope:localechange", () => {
+  applyDocumentTitle();
+  renderView();
+});
 applyRoute();
 loadReport();
