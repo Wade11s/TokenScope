@@ -61,3 +61,11 @@ _Avoid_: 占比
 **下界 (Lower bound)**:
 A usage figure presented with ≥ / 「至少」 because some contributing sources are incomplete. Never rendered as an exact total.
 _Avoid_: 约等于, ~
+
+**完整数字**:
+A token or request count written as a western-grouped integer with no scale suffix, such as 123,000,000.
+_Avoid_: 万, 亿
+
+**英文进位**:
+A compact token count scaled by thousands into K, M, B, or T, with at most one decimal and no space.
+_Avoid_: 万, 亿, G
