@@ -3,8 +3,8 @@
 // Owns the zh/en dictionaries for copy that lives in index.html, the
 // topbar language toggle, localStorage persistence, and <html lang> sync.
 // Dynamic JS-built strings (status labels, empty states, toasts, drill-down
-// document.title) stay owned by their renderers; WADE-25 hooks in via
-// getLocale()/t()/onLocaleChange().
+// document.title) render through t(key, params) via the bridge (WADE-25);
+// {name} placeholders in dictionary values are interpolated by t().
 //
 // Loaded as a module script placed before app.js. Module scripts defer by
 // default and keep document order with other deferred scripts, so the
@@ -85,6 +85,52 @@ export const dictionaries = {
     "title.overview": "TokenScope · 个人用量",
     "title.rank": "TokenScope · 排行",
     "title.drilldown": "TokenScope · 下钻",
+    "status.ready": "完整",
+    "status.partial": "部分",
+    "status.empty": "暂无记录",
+    "status.unavailable": "不可统计",
+    "status.error": "读取失败",
+    "status.absent": "未安装",
+    "bound.atLeast": "至少",
+    "bound.exact": "精确",
+    "range.noHistory": "无历史数据",
+    "range.caption": "{from} — {to} · {count} 个会话",
+    "range.dates": "{from} — {to}",
+    "sessions.count": "{count} 个会话",
+    "requests.count": "{count} 次请求",
+    "tokens.count": "{count} token",
+    "cache.note.exact": "可见输入 token 中的缓存读取占比",
+    "cache.note.partial": "输入不完整时仍按可见输入计算缓存率",
+    "cache.rate": "缓存率 {value}",
+    "cache.rate.empty": "缓存率 —",
+    "cache.read": "缓存读取 {value}",
+    "cache.read.empty": "缓存读取 —",
+    "activity.empty": "暂无活动数据。",
+    "activity.aria":
+      "过去 12 个月 token 活动热力图：{days} 天有用量，合计 {tokens}",
+    "activity.summary.none": "过去 12 个月没有可见用量。",
+    "activity.summary":
+      "过去 12 个月 {active} 天活跃 · 最长连续 {longest} 天 · 当前连续 {current} 天",
+    "activity.tooltip.usage": "{day} · {tokens} · {requests}",
+    "activity.tooltip.none": "{day} · 无用量",
+    "empty.composition": "暂无构成数据。",
+    "empty.rank": "暂无排行数据。",
+    "empty.harnessDetail": "暂无 Harness 明细。",
+    "empty.providers": "暂无 Provider 数据。",
+    "empty.models": "暂无 Model 数据。",
+    "drilldown.link": "查看 {name} 下钻",
+    "drilldown.heading.name": "下钻 · {name}",
+    "rank.share.aria": "份额为榜首行的 {percent}%",
+    "source.selected": "已选中",
+    "source.unselected": "未选中",
+    "source.checkbox.aria": "{name}，{tokens}，{state}",
+    "scan.meta": "{files} 个文件 · {updated} 个更新 · {ms} ms",
+    "meta.updated": "更新于 {time} · {timezone}",
+    "loading.refreshing": "正在检查变化的日志",
+    "toast.scanFailed": "扫描失败：{message}",
+    "toast.drilldownFailed": "读取下钻数据失败：{message}",
+    "toast.keepOne":
+      "至少保留一个 Harness。你也可以选择一个暂无数据的来源查看空状态。",
   },
   en: {
     "doc.title": "TokenScope · Personal Usage",
@@ -154,6 +200,53 @@ export const dictionaries = {
     "title.overview": "TokenScope · Personal Usage",
     "title.rank": "TokenScope · Rank",
     "title.drilldown": "TokenScope · Drill-down",
+    "status.ready": "Complete",
+    "status.partial": "Partial",
+    "status.empty": "No records",
+    "status.unavailable": "Not measurable",
+    "status.error": "Read failed",
+    "status.absent": "Not installed",
+    "bound.atLeast": "at least",
+    "bound.exact": "exact",
+    "range.noHistory": "No history",
+    "range.caption": "{from} — {to} · {count} sessions",
+    "range.dates": "{from} — {to}",
+    "sessions.count": "{count} sessions",
+    "requests.count": "{count} requests",
+    "tokens.count": "{count} tokens",
+    "cache.note.exact": "Share of visible input tokens served by cache reads",
+    "cache.note.partial":
+      "Cache rate is still computed against visible input while input is incomplete",
+    "cache.rate": "Cache rate {value}",
+    "cache.rate.empty": "Cache rate —",
+    "cache.read": "Cache read {value}",
+    "cache.read.empty": "Cache read —",
+    "activity.empty": "No activity data yet.",
+    "activity.aria":
+      "Token activity heatmap for the past 12 months: {days} days with usage, {tokens} in total",
+    "activity.summary.none": "No visible usage in the past 12 months.",
+    "activity.summary":
+      "{active} active days in the past 12 months · longest streak {longest} days · current streak {current} days",
+    "activity.tooltip.usage": "{day} · {tokens} · {requests}",
+    "activity.tooltip.none": "{day} · No usage",
+    "empty.composition": "No composition data yet.",
+    "empty.rank": "No ranking data yet.",
+    "empty.harnessDetail": "No Harness details yet.",
+    "empty.providers": "No Provider data yet.",
+    "empty.models": "No Model data yet.",
+    "drilldown.link": "Open {name} drill-down",
+    "drilldown.heading.name": "Drill-down · {name}",
+    "rank.share.aria": "Share is {percent}% of the top row",
+    "source.selected": "selected",
+    "source.unselected": "not selected",
+    "source.checkbox.aria": "{name}, {tokens}, {state}",
+    "scan.meta": "{files} files · {updated} updated · {ms} ms",
+    "meta.updated": "Updated {time} · {timezone}",
+    "loading.refreshing": "Checking for changed logs",
+    "toast.scanFailed": "Scan failed: {message}",
+    "toast.drilldownFailed": "Failed to load drill-down data: {message}",
+    "toast.keepOne":
+      "Keep at least one Harness. You can still select a source with no data to see its empty state.",
   },
 };
 
@@ -168,13 +261,20 @@ export function getLocale() {
   return currentLocale;
 }
 
-export function t(key) {
+export function t(key, params) {
   const table = dictionaries[currentLocale] || dictionaries[DEFAULT_LOCALE];
-  if (Object.hasOwn(table, key)) return table[key];
-  if (Object.hasOwn(dictionaries[DEFAULT_LOCALE], key)) {
-    return dictionaries[DEFAULT_LOCALE][key];
+  let value;
+  if (Object.hasOwn(table, key)) {
+    value = table[key];
+  } else if (Object.hasOwn(dictionaries[DEFAULT_LOCALE], key)) {
+    value = dictionaries[DEFAULT_LOCALE][key];
+  } else {
+    return key;
   }
-  return key;
+  if (!params) return value;
+  return value.replace(/\{(\w+)\}/g, (match, name) =>
+    Object.hasOwn(params, name) ? String(params[name]) : match,
+  );
 }
 
 export function applyStaticBindings(root = document) {
@@ -272,6 +372,6 @@ if (typeof document !== "undefined") {
 }
 
 if (typeof window !== "undefined") {
-  // Bridge for classic app.js and any future WADE-25 dynamic-string hooks.
+  // Bridge for classic app.js, which renders all dynamic strings through t().
   window.tokenscopeI18n = { getLocale, t, applyLocale, onLocaleChange };
 }
