@@ -58,25 +58,6 @@ const elements = {
   toast: document.querySelector("#toast"),
 };
 
-const compactFormatter = new Intl.NumberFormat("zh-CN", {
-  notation: "compact",
-  maximumFractionDigits: 1,
-});
-const fullFormatter = new Intl.NumberFormat("zh-CN");
-const dateFormatter = new Intl.DateTimeFormat("zh-CN", {
-  month: "short",
-  day: "numeric",
-});
-const monthFormatter = new Intl.DateTimeFormat("zh-CN", {
-  month: "short",
-});
-const timeFormatter = new Intl.DateTimeFormat("zh-CN", {
-  month: "short",
-  day: "numeric",
-  hour: "2-digit",
-  minute: "2-digit",
-});
-
 const STATUS_LABEL_KEYS = {
   ready: "status.ready",
   partial: "status.partial",
@@ -87,11 +68,15 @@ const STATUS_LABEL_KEYS = {
 };
 
 function formatCompact(value) {
-  return compactFormatter.format(Number(value) || 0);
+  return window.tokenscopeI18n
+    ? window.tokenscopeI18n.formatCompact(value)
+    : String(Number(value) || 0);
 }
 
 function formatFull(value) {
-  return fullFormatter.format(Math.round(Number(value) || 0));
+  return window.tokenscopeI18n
+    ? window.tokenscopeI18n.formatFull(value)
+    : String(Math.round(Number(value) || 0));
 }
 
 function formatKnown(value, known) {
@@ -105,8 +90,16 @@ function formatMetric(value, known) {
 }
 
 function formatDay(day) {
-  if (!day) return t("range.noHistory");
-  return dateFormatter.format(new Date(`${day}T12:00:00`));
+  if (window.tokenscopeI18n) return window.tokenscopeI18n.formatDay(day);
+  return day || t("range.noHistory");
+}
+
+function formatMonthLabel(date) {
+  return window.tokenscopeI18n ? window.tokenscopeI18n.formatMonthLabel(date) : "";
+}
+
+function formatDateTime(date) {
+  return window.tokenscopeI18n ? window.tokenscopeI18n.formatDateTime(date) : "";
 }
 
 function setText(element, value) {
@@ -271,7 +264,7 @@ function renderActivity() {
     if (month === lastMonth || monday.getDate() > 7) continue;
     lastMonth = month;
     const label = document.createElement("span");
-    label.textContent = monthFormatter.format(monday);
+    label.textContent = formatMonthLabel(monday);
     label.dataset.column = String(column);
     elements.activityMonths.append(label);
   }
@@ -676,7 +669,7 @@ function renderMeta() {
   setText(
     elements.lastUpdated,
     t("meta.updated", {
-      time: timeFormatter.format(new Date(generatedAt)),
+      time: formatDateTime(new Date(generatedAt)),
       timezone,
     }),
   );
@@ -705,7 +698,10 @@ function renderHarness() {
 
   setText(
     elements.harnessRangeCaption,
-    `${formatDay(range.from)} — ${formatDay(range.to)}`,
+    t("range.dates", {
+      from: formatDay(range.from),
+      to: formatDay(range.to),
+    }),
   );
   setText(
     elements.harnessSubtitle,
@@ -848,6 +844,9 @@ async function loadDrilldown() {
 
 function renderView() {
   if (!state.report) return;
+  // Footer timestamp is shared across views; keep it in the current locale
+  // even when Rank or drill-down skip the Overview render path.
+  renderMeta();
   if (state.route.view === "overview") {
     render();
     return;
@@ -1075,7 +1074,12 @@ if ("ResizeObserver" in window) {
 window.addEventListener("hashchange", applyRoute);
 document.addEventListener("tokenscope:localechange", () => {
   applyDocumentTitle();
-  renderView();
+  if (!state.report) return;
+  // Refresh every view's dynamic copy, including hidden ones, so leftover
+  // zh/EN does not linger in titles, aria-labels, or the shared footer.
+  render();
+  renderRank();
+  if (state.route.view === "harness" && state.drilldown) renderHarness();
 });
 applyRoute();
 loadReport();

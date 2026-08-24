@@ -8,9 +8,15 @@ import {
   SUPPORTED_LOCALES,
   applyLocale,
   dictionaries,
+  formatCompact,
+  formatDateTime,
+  formatDay,
+  formatFull,
+  formatMonthLabel,
   getLocale,
   normalizeLocale,
   t,
+  weekdayMarkers,
 } from "../public/i18n.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -122,6 +128,37 @@ test("dynamic-string keys used by app.js exist in both dictionaries", async () =
       `app.js key "${key}" missing from en dictionary`,
     );
   }
+});
+
+test("dates, months, and weekdays follow the current locale via Intl", () => {
+  applyLocale("zh");
+  assert.equal(formatDay("2026-03-05"), "3月5日");
+  assert.equal(formatMonthLabel(new Date("2026-03-05T12:00:00")), "3月");
+  assert.deepEqual(weekdayMarkers(), ["一", "", "三", "", "五", "", ""]);
+  assert.match(formatDateTime(new Date("2026-03-05T15:04:00")), /3月5日/);
+
+  applyLocale("en");
+  assert.equal(formatDay("2026-03-05"), "Mar 5");
+  assert.equal(formatMonthLabel(new Date("2026-03-05T12:00:00")), "Mar");
+  assert.deepEqual(weekdayMarkers(), ["Mon", "", "Wed", "", "Fri", "", ""]);
+  assert.match(formatDateTime(new Date("2026-03-05T15:04:00")), /Mar 5/);
+  assert.equal(formatDay(""), t("range.noHistory"));
+  applyLocale("zh");
+});
+
+test("full numbers keep western thousands separators and compact stays K/M/B/T", () => {
+  for (const locale of ["zh", "en"]) {
+    applyLocale(locale);
+    assert.equal(formatFull(1234567), "1,234,567");
+    assert.equal(formatCompact(1234), "1.2K");
+    assert.equal(formatCompact(12_000), "12K");
+    assert.equal(formatCompact(1_234_567), "1.2M");
+    assert.equal(formatCompact(1_500_000_000), "1.5B");
+    assert.equal(formatCompact(2_300_000_000_000), "2.3T");
+    assert.equal(formatCompact(1.24), "1.2");
+    assert.doesNotMatch(formatCompact(12_000), /[万亿]/);
+  }
+  applyLocale("zh");
 });
 
 test("app.js contains no hardcoded CJK copy", async () => {

@@ -5,6 +5,8 @@
 // Dynamic JS-built strings (status labels, empty states, toasts, drill-down
 // document.title) render through t(key, params) via the bridge (WADE-25);
 // {name} placeholders in dictionary values are interpolated by t().
+// Locale-aware date/weekday/month formatters (WADE-26) live here so both
+// the static bindings and app.js share one Intl locale.
 //
 // Loaded as a module script placed before app.js. Module scripts defer by
 // default and keep document order with other deferred scripts, so the
@@ -17,6 +19,46 @@ export const STORAGE_KEY = "tokenscope.locale";
 export const LOCALE_CHANGE_EVENT = "tokenscope:localechange";
 
 const HTML_LANGS = { zh: "zh-CN", en: "en" };
+
+// Numbers stay locale-independent in both UI languages: western thousands
+// separators for full figures, English compact K/M/B/T with at most one
+// decimal. Dates follow the current UI locale via Intl.
+const compactNumberFormatter = new Intl.NumberFormat("en", {
+  notation: "compact",
+  maximumFractionDigits: 1,
+});
+const fullNumberFormatter = new Intl.NumberFormat("en");
+
+let dateFormatter;
+let monthFormatter;
+let timeFormatter;
+let weekdayFormatter;
+let currentLocale = DEFAULT_LOCALE;
+
+function intlLocale() {
+  return HTML_LANGS[currentLocale] || HTML_LANGS[DEFAULT_LOCALE];
+}
+
+function rebuildDateFormatters() {
+  const loc = intlLocale();
+  dateFormatter = new Intl.DateTimeFormat(loc, {
+    month: "short",
+    day: "numeric",
+  });
+  monthFormatter = new Intl.DateTimeFormat(loc, { month: "short" });
+  timeFormatter = new Intl.DateTimeFormat(loc, {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  weekdayFormatter = new Intl.DateTimeFormat(loc, {
+    weekday: loc === "zh-CN" ? "narrow" : "short",
+    timeZone: "UTC",
+  });
+}
+
+rebuildDateFormatters();
 
 export const dictionaries = {
   zh: {
@@ -250,7 +292,6 @@ export const dictionaries = {
   },
 };
 
-let currentLocale = DEFAULT_LOCALE;
 const localeChangeHandlers = new Set();
 
 export function normalizeLocale(value) {
@@ -277,6 +318,61 @@ export function t(key, params) {
   );
 }
 
+export function formatCompact(value) {
+  return compactNumberFormatter.format(Number(value) || 0);
+}
+
+export function formatFull(value) {
+  return fullNumberFormatter.format(Math.round(Number(value) || 0));
+}
+
+export function formatDay(day) {
+  if (!day) return t("range.noHistory");
+  return dateFormatter.format(new Date(`${day}T12:00:00`));
+}
+
+export function formatMonthLabel(date) {
+  return monthFormatter.format(date);
+}
+
+export function formatDateTime(date) {
+  return timeFormatter.format(date);
+}
+
+// GitHub-style heatmap row: labels on Mon/Wed/Fri only (一/三/五 in zh).
+// 2024-01-01 is a Monday in UTC.
+const WEEKDAY_LABEL_INDEXES = new Set([0, 2, 4]);
+const WEEKDAY_ANCHOR_UTC = Date.UTC(2024, 0, 1);
+
+export function weekdayMarkers() {
+  return [0, 1, 2, 3, 4, 5, 6].map((offset) => {
+    if (!WEEKDAY_LABEL_INDEXES.has(offset)) return "";
+    return weekdayFormatter.format(
+      new Date(WEEKDAY_ANCHOR_UTC + offset * 86_400_000),
+    );
+  });
+}
+
+function applyWeekdayLabels(root) {
+  const host = root.querySelector("#activityWeekdays") || root.querySelector(".activity-weekdays");
+  if (!host) return;
+  const labels = weekdayMarkers();
+  const spans = host.querySelectorAll("span");
+  if (spans.length === labels.length) {
+    labels.forEach((label, index) => {
+      spans[index].textContent = label;
+    });
+    return;
+  }
+  host.replaceChildren(
+    ...labels.map((label) => {
+      const span = document.createElement("span");
+      span.textContent = label;
+      return span;
+    }),
+  );
+}
+
 export function applyStaticBindings(root = document) {
   root.querySelectorAll("[data-i18n]").forEach((node) => {
     node.textContent = t(node.dataset.i18n);
@@ -293,6 +389,7 @@ export function applyStaticBindings(root = document) {
       if (attribute && key) node.setAttribute(attribute, t(key));
     });
   });
+  applyWeekdayLabels(root);
 }
 
 function readStoredLocale() {
@@ -337,6 +434,7 @@ export function onLocaleChange(handler) {
 export function applyLocale(lang) {
   const next = normalizeLocale(lang);
   currentLocale = next;
+  rebuildDateFormatters();
   if (typeof document !== "undefined") {
     persistLocale(next);
     document.documentElement.lang = HTML_LANGS[next];
@@ -360,6 +458,7 @@ function wireLangToggle() {
 // because module scripts are deferred.
 export function initI18n() {
   currentLocale = readStoredLocale() || DEFAULT_LOCALE;
+  rebuildDateFormatters();
   document.documentElement.lang = HTML_LANGS[currentLocale];
   applyStaticBindings(document);
   wireLangToggle();
@@ -373,5 +472,16 @@ if (typeof document !== "undefined") {
 
 if (typeof window !== "undefined") {
   // Bridge for classic app.js, which renders all dynamic strings through t().
-  window.tokenscopeI18n = { getLocale, t, applyLocale, onLocaleChange };
+  window.tokenscopeI18n = {
+    getLocale,
+    t,
+    applyLocale,
+    onLocaleChange,
+    formatDay,
+    formatMonthLabel,
+    formatDateTime,
+    formatCompact,
+    formatFull,
+    weekdayMarkers,
+  };
 }

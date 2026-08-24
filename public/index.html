@@ -9,9 +9,9 @@
       data-i18n-attrs="content:doc.description"
     />
     <title data-i18n="doc.title">TokenScope · 个人用量</title>
-    <link rel="stylesheet" href="/styles.css?v=14" />
-    <script type="module" src="/i18n.js?v=1"></script>
-    <script src="/app.js?v=14" defer></script>
+    <link rel="stylesheet" href="/styles.css?v=15" />
+    <script type="module" src="/i18n.js?v=2"></script>
+    <script src="/app.js?v=16" defer></script>
   </head>
   <body>
     <div class="page-shell">
@@ -136,7 +136,7 @@
                 <div class="activity-stack">
                   <div class="activity-months" id="activityMonths"></div>
                   <div class="activity-body">
-                    <div class="activity-weekdays" aria-hidden="true">
+                    <div class="activity-weekdays" id="activityWeekdays" aria-hidden="true">
                       <span>一</span><span></span><span>三</span><span></span><span>五</span><span></span><span></span>
                     </div>
                     <div class="activity-grid" id="activityGrid"></div>
@@ -205,12 +205,12 @@
               <p data-i18n="drilldown.token.note">可见输入 + 输出 token 合计</p>
             </article>
             <article class="metric-card">
-              <div class="metric-label"><span>Input</span></div>
+              <div class="metric-label"><span data-i18n="metric.input">输入</span></div>
               <div class="metric-value" id="harnessInputTokens">—</div>
               <p id="harnessCacheNote" data-i18n="cache.read.empty">缓存读取 —</p>
             </article>
             <article class="metric-card">
-              <div class="metric-label"><span>Output</span></div>
+              <div class="metric-label"><span data-i18n="metric.output">输出</span></div>
               <div class="metric-value" id="harnessOutputTokens">—</div>
               <p data-i18n="drilldown.output.note">模型生成输出</p>
             </article>

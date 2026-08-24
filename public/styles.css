@@ -775,6 +775,10 @@ h1 {
   --activity-weekday: 18px;
 }
 
+html[lang="en"] .activity-panel {
+  --activity-weekday: 32px;
+}
+
 .activity-heading {
   align-items: flex-start;
 }
