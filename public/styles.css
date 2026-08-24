@@ -352,6 +352,15 @@ h1 {
   letter-spacing: -0.05em;
   font-weight: 750;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.metric-value.is-long {
+  font-size: clamp(18px, 2.1vw, 26px);
+}
+
+.metric-value.is-longer {
+  font-size: clamp(16px, 1.7vw, 22px);
 }
 
 .metric-primary .metric-bound + .metric-value {

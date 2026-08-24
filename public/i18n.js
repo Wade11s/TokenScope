@@ -6,30 +6,41 @@
 // document.title) render through t(key, params) via the bridge (WADE-25);
 // {name} placeholders in dictionary values are interpolated by t().
 // Locale-aware date/weekday/month formatters (WADE-26) live here so both
-// the static bindings and app.js share one Intl locale. Harness coverage
-// tooltip descriptions (WADE-27) resolve through source.desc.<id> keys plus
-// a generic source.desc.fallback so EN hovers never leak backend zh metadata.
+// the static bindings and app.js share one Intl locale. Numbers come from
+// public/format.js (complete figures / English compact scale) and are
+// re-exported on the bridge. Harness coverage tooltip descriptions
+// (WADE-27) resolve through source.desc.<id> keys plus a generic
+// source.desc.fallback so EN hovers never leak backend zh metadata.
 //
 // Loaded as a module script placed before app.js. Module scripts defer by
 // default and keep document order with other deferred scripts, so the
 // `window.tokenscopeI18n` bridge exists before app.js runs. The bridge is
 // also exposed because app.js is a classic script and cannot import.
 
+import {
+  compactScale,
+  formatAxisTick,
+  formatCompact,
+  formatFull,
+  formatKnown,
+  formatMetric,
+} from "./format.js";
+
 export const SUPPORTED_LOCALES = ["zh", "en"];
 export const DEFAULT_LOCALE = "zh";
 export const STORAGE_KEY = "tokenscope.locale";
 export const LOCALE_CHANGE_EVENT = "tokenscope:localechange";
 
-const HTML_LANGS = { zh: "zh-CN", en: "en" };
+export {
+  compactScale,
+  formatAxisTick,
+  formatCompact,
+  formatFull,
+  formatKnown,
+  formatMetric,
+};
 
-// Numbers stay locale-independent in both UI languages: western thousands
-// separators for full figures, English compact K/M/B/T with at most one
-// decimal. Dates follow the current UI locale via Intl.
-const compactNumberFormatter = new Intl.NumberFormat("en", {
-  notation: "compact",
-  maximumFractionDigits: 1,
-});
-const fullNumberFormatter = new Intl.NumberFormat("en");
+const HTML_LANGS = { zh: "zh-CN", en: "en" };
 
 let dateFormatter;
 let monthFormatter;
@@ -362,14 +373,6 @@ export function has(key) {
   );
 }
 
-export function formatCompact(value) {
-  return compactNumberFormatter.format(Number(value) || 0);
-}
-
-export function formatFull(value) {
-  return fullNumberFormatter.format(Math.round(Number(value) || 0));
-}
-
 export function formatDay(day) {
   if (!day) return t("range.noHistory");
   return dateFormatter.format(new Date(`${day}T12:00:00`));
@@ -527,6 +530,10 @@ if (typeof window !== "undefined") {
     formatDateTime,
     formatCompact,
     formatFull,
+    formatKnown,
+    formatMetric,
+    compactScale,
+    formatAxisTick,
     weekdayMarkers,
   };
 }

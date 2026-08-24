@@ -121,3 +121,17 @@ test("an unknown harness id yields an empty but well-formed report, not an error
     server.close();
   }
 });
+
+test("dashboard modules required by the first paint are served", async () => {
+  const server = await startServer();
+  try {
+    const { port } = server.address();
+    for (const pathname of ["/app.js", "/i18n.js", "/format.js", "/styles.css"]) {
+      const response = await fetch(`http://127.0.0.1:${port}${pathname}`);
+      assert.equal(response.status, 200, pathname);
+      assert.match(response.headers.get("content-type"), /javascript|css/);
+    }
+  } finally {
+    server.close();
+  }
+});

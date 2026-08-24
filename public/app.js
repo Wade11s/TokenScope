@@ -80,13 +80,27 @@ function formatFull(value) {
 }
 
 function formatKnown(value, known) {
+  if (window.tokenscopeI18n) return window.tokenscopeI18n.formatKnown(value, known);
   if (!known && !value) return "—";
   return `${known ? "" : "≥"}${formatFull(value)}`;
 }
 
 function formatMetric(value, known) {
+  if (window.tokenscopeI18n) return window.tokenscopeI18n.formatMetric(value, known);
   if (!known && !value) return "—";
   return `${known ? "" : "≥"}${formatCompact(value)}`;
+}
+
+function compactScale(value) {
+  return window.tokenscopeI18n
+    ? window.tokenscopeI18n.compactScale(value)
+    : { divisor: 1, suffix: "" };
+}
+
+function formatAxisTick(value, scale) {
+  return window.tokenscopeI18n
+    ? window.tokenscopeI18n.formatAxisTick(value, scale)
+    : formatCompact(value);
 }
 
 function formatDay(day) {
@@ -104,6 +118,12 @@ function formatDateTime(date) {
 
 function setText(element, value) {
   element.textContent = value;
+}
+
+function setMetricValue(element, value) {
+  setText(element, value);
+  element.classList.toggle("is-long", value.length >= 10);
+  element.classList.toggle("is-longer", value.length >= 13);
 }
 
 function t(key, params) {
@@ -131,23 +151,22 @@ function setLoading(loading, firstLoad = false) {
 
 function renderSummary() {
   const { summary, range } = state.report;
-  const prefix = summary.complete ? "" : "≥";
-  setText(elements.totalTokens, `${prefix}${formatCompact(summary.knownTokens)}`);
-  setText(elements.inputTokens, formatMetric(summary.inputTokens, summary.inputKnown));
-  setText(elements.outputTokens, formatMetric(summary.outputTokens, summary.outputKnown));
+  setMetricValue(elements.totalTokens, formatKnown(summary.knownTokens, summary.complete));
+  setMetricValue(elements.inputTokens, formatKnown(summary.inputTokens, summary.inputKnown));
+  setMetricValue(elements.outputTokens, formatKnown(summary.outputTokens, summary.outputKnown));
   elements.inputTokens.title = formatKnown(summary.inputTokens, summary.inputKnown);
   elements.outputTokens.title = formatKnown(summary.outputTokens, summary.outputKnown);
-  setText(
+  setMetricValue(
     elements.requestCount,
     `${summary.complete ? "" : "≥"}${formatFull(summary.requests)}`,
   );
-  setText(
+  setMetricValue(
     elements.cacheRate,
     summary.inputTokens ? `${(summary.cacheRate * 100).toFixed(1)}%` : "—",
   );
   setText(
     elements.cacheTokens,
-    formatMetric(summary.cacheReadTokens, summary.inputKnown),
+    formatKnown(summary.cacheReadTokens, summary.inputKnown),
   );
   elements.cacheRate.title = t(
     summary.inputKnown ? "cache.note.exact" : "cache.note.partial",
@@ -187,6 +206,7 @@ function drawTrend() {
   const chartWidth = bounds.width - padding.left - padding.right;
   const chartHeight = bounds.height - padding.top - padding.bottom;
   const maximum = Math.max(...data.map((item) => item.knownTokens), 1);
+  const axisScale = compactScale(maximum);
 
   context.font = "10px ui-sans-serif, system-ui";
   context.textBaseline = "middle";
@@ -201,7 +221,7 @@ function drawTrend() {
     context.stroke();
     context.fillStyle = "#8f988f";
     context.textAlign = "right";
-    context.fillText(formatCompact(value), padding.left - 8, y);
+    context.fillText(formatAxisTick(value, axisScale), padding.left - 8, y);
   }
 
   const step = chartWidth / data.length;
@@ -733,12 +753,12 @@ function renderHarness() {
     t(summary.complete ? "bound.exact" : "bound.atLeast"),
   );
   elements.harnessAccuracy.classList.toggle("partial", !summary.complete);
-  setText(
+  setMetricValue(
     elements.harnessTokens,
-    `${summary.complete ? "" : "≥"}${formatCompact(summary.knownTokens)}`,
+    formatKnown(summary.knownTokens, summary.complete),
   );
-  setText(elements.harnessInputTokens, formatMetric(summary.inputTokens, summary.inputKnown));
-  setText(elements.harnessOutputTokens, formatMetric(summary.outputTokens, summary.outputKnown));
+  setMetricValue(elements.harnessInputTokens, formatKnown(summary.inputTokens, summary.inputKnown));
+  setMetricValue(elements.harnessOutputTokens, formatKnown(summary.outputTokens, summary.outputKnown));
   elements.harnessInputTokens.title = formatKnown(summary.inputTokens, summary.inputKnown);
   elements.harnessOutputTokens.title = formatKnown(summary.outputTokens, summary.outputKnown);
   setText(

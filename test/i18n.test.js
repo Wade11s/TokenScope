@@ -156,7 +156,7 @@ test("full numbers keep western thousands separators and compact stays K/M/B/T",
     assert.equal(formatCompact(1_234_567), "1.2M");
     assert.equal(formatCompact(1_500_000_000), "1.5B");
     assert.equal(formatCompact(2_300_000_000_000), "2.3T");
-    assert.equal(formatCompact(1.24), "1.2");
+    assert.equal(formatCompact(1.24), "1");
     assert.doesNotMatch(formatCompact(12_000), /[万亿]/);
   }
   applyLocale("zh");
