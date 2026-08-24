@@ -14,6 +14,7 @@ import {
   formatFull,
   formatMonthLabel,
   getLocale,
+  has,
   normalizeLocale,
   t,
   weekdayMarkers,
@@ -172,4 +173,108 @@ test("app.js contains no hardcoded CJK copy", async () => {
     [],
     "app.js must render all CJK copy through the i18n dictionaries",
   );
+});
+
+const KNOWN_HARNESS_IDS = [
+  "codex",
+  "claude",
+  "gemini",
+  "grok",
+  "kimi",
+  "pi",
+  "hermes",
+  "droid",
+  "fx",
+  "copilot",
+  "continue",
+  "omp",
+  "opencode",
+  "cursor",
+  "aider",
+];
+
+// The dashboard source catalog as scanUsage would build it: every adapter
+// plus every detect-only definition. Detect-only ids must not drift from
+// this list without a matching dictionary entry.
+async function knownSources() {
+  const { adapters } = await import("../src/adapters/index.js");
+  const { detectOnlyDefinitions } = await import("../src/indexer.js");
+  const homeDir = "/home/tester";
+  const sources = adapters.map((adapter) => ({
+    id: adapter.id,
+    description: adapter.description,
+  }));
+  for (const definition of detectOnlyDefinitions(homeDir)) {
+    sources.push({ id: definition.id, description: definition.description });
+  }
+  return sources;
+}
+
+test("every known harness id resolves a tooltip description in both locales", async () => {
+  const sources = await knownSources();
+  assert.deepEqual(
+    sources.map((source) => source.id).sort(),
+    [...KNOWN_HARNESS_IDS].sort(),
+    "the source catalog changed; update the expected id list and its dictionaries",
+  );
+  for (const source of sources) {
+    const key = `source.desc.${source.id}`;
+    assert.ok(
+      Object.hasOwn(dictionaries.zh, key),
+      `zh dictionary missing "${key}"`,
+    );
+    assert.ok(
+      Object.hasOwn(dictionaries.en, key),
+      `en dictionary missing "${key}"`,
+    );
+    assert.ok(has(key), `has() must resolve "${key}"`);
+  }
+});
+
+test("zh tooltip descriptions stay in sync with backend source metadata", async () => {
+  applyLocale("zh");
+  const sources = await knownSources();
+  for (const source of sources) {
+    assert.equal(
+      t(`source.desc.${source.id}`),
+      source.description,
+      `zh dictionary copy for "${source.id}" drifted from its adapter metadata`,
+    );
+  }
+  applyLocale("zh");
+});
+
+test("en tooltip descriptions contain no leftover Chinese", async () => {
+  applyLocale("en");
+  for (const [key, value] of Object.entries(dictionaries.en)) {
+    if (!key.startsWith("source.desc.")) continue;
+    assert.doesNotMatch(
+      value,
+      /[\u4e00-\u9fff\uff00-\uffef]/,
+      `en "${key}" must be fully translated`,
+    );
+  }
+  assert.equal(t("source.desc.codex"), dictionaries.en["source.desc.codex"]);
+  applyLocale("zh");
+});
+
+test("unknown harness ids get a generic localized tooltip fallback", () => {
+  assert.ok(!has("source.desc.brand-new-harness"));
+  applyLocale("en");
+  assert.equal(
+    t("source.desc.fallback"),
+    "Local usage data for this harness.",
+  );
+  applyLocale("zh");
+  assert.equal(t("source.desc.fallback"), "该 Harness 的本地用量数据。");
+});
+
+test("coverage tooltips render descriptions through the dictionaries only", async () => {
+  const source = await readFile(path.join(ROOT, "public", "app.js"), "utf8");
+  assert.doesNotMatch(
+    source,
+    /source\.description/,
+    "coverageTooltip must not paste raw backend zh metadata into tooltips",
+  );
+  assert.match(source, /source\.desc\./, "tooltips should resolve source.desc.* keys");
 });

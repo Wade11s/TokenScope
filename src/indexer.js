@@ -44,8 +44,11 @@ async function existsAny(paths) {
   return values.some(Boolean);
 }
 
-async function detectReadOnlySources(homeDir) {
-  const definitions = [
+// Detect-only harnesses: TokenScope can notice these on disk but cannot
+// parse them into token records. Exported so tests can pin the UI tooltip
+// dictionaries to every known detect-only id; paths resolve per home dir.
+export function detectOnlyDefinitions(homeDir) {
+  return [
     {
       id: "cursor",
       name: "Cursor",
@@ -67,9 +70,11 @@ async function detectReadOnlySources(homeDir) {
       description: "检测到 Aider，但未发现结构化 token usage 日志。",
     },
   ];
+}
 
+async function detectReadOnlySources(homeDir) {
   const sources = [];
-  for (const definition of definitions) {
+  for (const definition of detectOnlyDefinitions(homeDir)) {
     if (await existsAny(definition.paths)) {
       sources.push({
         ...definition,

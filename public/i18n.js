@@ -6,7 +6,9 @@
 // document.title) render through t(key, params) via the bridge (WADE-25);
 // {name} placeholders in dictionary values are interpolated by t().
 // Locale-aware date/weekday/month formatters (WADE-26) live here so both
-// the static bindings and app.js share one Intl locale.
+// the static bindings and app.js share one Intl locale. Harness coverage
+// tooltip descriptions (WADE-27) resolve through source.desc.<id> keys plus
+// a generic source.desc.fallback so EN hovers never leak backend zh metadata.
 //
 // Loaded as a module script placed before app.js. Module scripts defer by
 // default and keep document order with other deferred scripts, so the
@@ -166,6 +168,22 @@ export const dictionaries = {
     "source.selected": "已选中",
     "source.unselected": "未选中",
     "source.checkbox.aria": "{name}，{tokens}，{state}",
+    "source.desc.codex": "输入、输出、缓存与推理 token；包含活跃和归档会话。",
+    "source.desc.claude": "按 message id 合并流式记录，避免重复计算。Provider 可能由当前配置推断。",
+    "source.desc.gemini": "读取 Gemini CLI 会话中的 usage metadata（若本地版本保存该字段）。",
+    "source.desc.grok": "读取 turn_completed usage，并按 session/prompt/model 去重；缓存是 input 子集。",
+    "source.desc.kimi": "读取每个 agent wire 中可相加的 usage.record；忽略 context append 镜像。",
+    "source.desc.pi": "读取 Pi assistant 与 compaction usage；排除重复的 subagent transcript artifacts。",
+    "source.desc.hermes": "读取默认与命名 profile 的 session_model_usage；按 session/model 的最后活动日归档。",
+    "source.desc.droid": "读取 Factory session *.settings.json 的 tokenUsage 累计快照并按 Codex 方式取增量；不用 inclusiveTokenUsage 与自身用量相加。无请求级时间戳，provider 记为 factory，请求数为下限。",
+    "source.desc.fx": "读取会话 usage-v2.json 快照；cache/reasoning 是 input/output 子集。有 models[] 时按 provider/model 拆分，否则记 unknown。根 usage.jsonl 无 token 字段。billing 可能 incomplete，按下限处理。",
+    "source.desc.copilot": "本地事件仅暴露输出 token；总量会显示为下限。",
+    "source.desc.continue": "读取 Continue 本地 dev_data 中的 prompt/generated token 事件。",
+    "source.desc.omp": "统计 OMP 主/子 agent 的真实 assistant usage；忽略 orchestration custom 摘要。",
+    "source.desc.opencode": "支持 OpenCode JSON message storage；没有会话时保留为已检测数据源。",
+    "source.desc.cursor": "检测到 Cursor，但本地 AI tracking 数据库不包含 token 用量。",
+    "source.desc.aider": "检测到 Aider，但未发现结构化 token usage 日志。",
+    "source.desc.fallback": "该 Harness 的本地用量数据。",
     "scan.meta": "{files} 个文件 · {updated} 个更新 · {ms} ms",
     "meta.updated": "更新于 {time} · {timezone}",
     "loading.refreshing": "正在检查变化的日志",
@@ -282,6 +300,22 @@ export const dictionaries = {
     "source.selected": "selected",
     "source.unselected": "not selected",
     "source.checkbox.aria": "{name}, {tokens}, {state}",
+    "source.desc.codex": "Input, output, cached, and reasoning tokens; includes active and archived sessions.",
+    "source.desc.claude": "Merges streamed records by message id to avoid double counting; provider may be inferred from the current config.",
+    "source.desc.gemini": "Reads usage metadata from Gemini CLI sessions, when the local version stores it.",
+    "source.desc.grok": "Reads turn_completed usage, deduplicated by session/prompt/model; cached tokens are a subset of input.",
+    "source.desc.kimi": "Reads additive usage.record entries from each agent wire; ignores context-append mirrors.",
+    "source.desc.pi": "Reads Pi assistant and compaction usage; excludes duplicated subagent transcript artifacts.",
+    "source.desc.hermes": "Reads session_model_usage from default and named profiles; archived by each session/model's last active day.",
+    "source.desc.droid": "Reads cumulative tokenUsage snapshots from Factory session *.settings.json and takes deltas the Codex way; inclusiveTokenUsage is not added on top. No per-request timestamps, provider is recorded as factory, and request count is a lower bound.",
+    "source.desc.fx": "Reads session usage-v2.json snapshots; cache/reasoning are subsets of input/output. Split by provider/model when models[] is present, otherwise recorded as unknown. The root usage.jsonl has no token fields. Billing may be incomplete and is treated as a lower bound.",
+    "source.desc.copilot": "Local events only expose output tokens; totals are shown as a lower bound.",
+    "source.desc.continue": "Reads prompt/generated token events from Continue's local dev_data.",
+    "source.desc.omp": "Counts real assistant usage from OMP main/sub agents; ignores orchestration custom summaries.",
+    "source.desc.opencode": "Supports OpenCode JSON message storage; kept as a detected source when no sessions exist.",
+    "source.desc.cursor": "Cursor detected, but its local AI tracking database contains no token usage.",
+    "source.desc.aider": "Aider detected, but no structured token usage logs were found.",
+    "source.desc.fallback": "Local usage data for this harness.",
     "scan.meta": "{files} files · {updated} updated · {ms} ms",
     "meta.updated": "Updated {time} · {timezone}",
     "loading.refreshing": "Checking for changed logs",
@@ -315,6 +349,16 @@ export function t(key, params) {
   if (!params) return value;
   return value.replace(/\{(\w+)\}/g, (match, name) =>
     Object.hasOwn(params, name) ? String(params[name]) : match,
+  );
+}
+
+// Whether a key resolves to real copy (versus t() echoing the key back).
+// Lets classic app.js pick per-source description keys without leaking raw
+// keys into tooltips for harness ids the dictionaries do not know yet.
+export function has(key) {
+  const table = dictionaries[currentLocale] || dictionaries[DEFAULT_LOCALE];
+  return (
+    Object.hasOwn(table, key) || Object.hasOwn(dictionaries[DEFAULT_LOCALE], key)
   );
 }
 
@@ -475,6 +519,7 @@ if (typeof window !== "undefined") {
   window.tokenscopeI18n = {
     getLocale,
     t,
+    has,
     applyLocale,
     onLocaleChange,
     formatDay,

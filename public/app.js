@@ -605,9 +605,19 @@ function renderRank() {
 }
 
 function coverageTooltip(source, statusText) {
-  return [source.name, statusText, source.description, source.displayPath]
+  return [source.name, statusText, sourceTooltipDescription(source), source.displayPath]
     .filter(Boolean)
     .join("\n");
+}
+
+// Tooltip descriptions resolve through the i18n dictionaries, never the raw
+// backend description field (zh adapter metadata). Known harness ids get
+// source.desc.<id>; ids the dictionaries have not met yet fall back to a
+// generic localized line instead of leaking Chinese into EN hovers.
+function sourceTooltipDescription(source) {
+  const key = `source.desc.${source.id}`;
+  if (window.tokenscopeI18n && window.tokenscopeI18n.has(key)) return t(key);
+  return t("source.desc.fallback");
 }
 
 function renderSources() {
