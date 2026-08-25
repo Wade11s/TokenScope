@@ -71,6 +71,33 @@ const STATUS_LABEL_KEYS = {
 // grouped full figures even if the i18n bridge fails to load.
 const fallbackFullFormatter = new Intl.NumberFormat("en");
 
+// Local CSS monograms keep the card marks deterministic and offline. The keys
+// are stable adapter ids, not display names, so a renamed Harness keeps its mark.
+const HARNESS_MARKS = Object.freeze({
+  codex: "CX",
+  claude: "CL",
+  gemini: "G",
+  grok: "GK",
+  kimi: "KM",
+  pi: "π",
+  hermes: "H",
+  droid: "D",
+  fx: "FX",
+  copilot: "CP",
+  continue: "CT",
+  omp: "OM",
+  opencode: "OC",
+  cursor: "CU",
+  aider: "AI",
+});
+
+function harnessMark(id) {
+  const knownMark = HARNESS_MARKS[id];
+  if (knownMark) return knownMark;
+  const fallback = String(id || "").replace(/[^a-z0-9]/gi, "").slice(0, 2);
+  return fallback ? fallback.toUpperCase() : "?";
+}
+
 function formatCompact(value) {
   return window.tokenscopeI18n
     ? window.tokenscopeI18n.formatCompact(value)
@@ -670,12 +697,14 @@ function renderSources() {
       : "—";
     const tooltip = coverageTooltip(source, statusText);
     const item = document.createElement("label");
-    item.className = `harness-item source-${source.id}`;
+    item.className = `harness-item harness-card source-${source.id}`;
+    item.dataset.harnessId = source.id;
     item.classList.toggle("selected", selected);
     item.title = tooltip;
 
     const checkbox = document.createElement("input");
     checkbox.type = "checkbox";
+    checkbox.className = "harness-card-toggle";
     checkbox.checked = selected;
     checkbox.setAttribute(
       "aria-label",
@@ -691,6 +720,15 @@ function renderSources() {
       toggleSource(source.id);
     });
 
+    const mark = document.createElement("span");
+    mark.className = "harness-mark";
+    mark.dataset.harnessId = source.id;
+    mark.textContent = harnessMark(source.id);
+    mark.setAttribute("aria-hidden", "true");
+
+    const body = document.createElement("span");
+    body.className = "harness-card-body";
+
     const name = document.createElement("span");
     name.className = "harness-name";
     name.textContent = source.name;
@@ -700,7 +738,8 @@ function renderSources() {
     usage.textContent = tokenText;
     usage.setAttribute("aria-hidden", "true");
 
-    item.append(checkbox, name, usage);
+    body.append(name, usage);
+    item.append(checkbox, mark, body);
     elements.sourceGrid.append(item);
   });
 }
