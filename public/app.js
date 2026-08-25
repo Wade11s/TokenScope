@@ -225,27 +225,37 @@ function drawTrend() {
   context.setTransform(ratio, 0, 0, ratio, 0, 0);
   context.clearRect(0, 0, bounds.width, bounds.height);
 
-  const maximum = Math.max(...data.map((item) => item.knownTokens), 1);
-  const axisScale = compactScale(maximum);
+  // Input and output use independent scales so a cache-heavy input series
+  // cannot flatten output bars into an invisible fraction of the input axis.
+  const inputMaximum = Math.max(...data.map((item) => item.inputTokens), 1);
+  const outputMaximum = Math.max(...data.map((item) => item.outputTokens), 1);
+  const inputScale = compactScale(inputMaximum);
+  const outputScale = compactScale(outputMaximum);
 
   context.font = "10px ui-sans-serif, system-ui";
-  // Compact-scale ticks all share the series-maximum scale; size the left
-  // gutter from the widest measured tick label so no tick can clip at the
-  // chart edge, whatever the platform font metrics.
-  const tickLabels = [];
+  // Measure both axes independently so compact-scale ticks never clip at the
+  // chart edge, whatever the platform font metrics or series magnitudes.
+  const inputTickLabels = [];
+  const outputTickLabels = [];
   for (let index = 0; index <= 4; index += 1) {
-    tickLabels.push(formatAxisTick(maximum * (1 - index / 4), axisScale));
+    const fraction = 1 - index / 4;
+    inputTickLabels.push(formatAxisTick(inputMaximum * fraction, inputScale));
+    outputTickLabels.push(formatAxisTick(outputMaximum * fraction, outputScale));
   }
-  const widestTick = Math.ceil(
-    Math.max(...tickLabels.map((label) => context.measureText(label).width)),
+  const widestInputTick = Math.ceil(
+    Math.max(...inputTickLabels.map((label) => context.measureText(label).width)),
+  );
+  const widestOutputTick = Math.ceil(
+    Math.max(...outputTickLabels.map((label) => context.measureText(label).width)),
   );
   const padding = {
-    top: 10,
-    right: 8,
+    top: 14,
+    right: Math.max(47, widestOutputTick + 10),
     bottom: 31,
-    left: Math.max(47, widestTick + 10),
+    left: Math.max(47, widestInputTick + 10),
   };
-  const chartWidth = bounds.width - padding.left - padding.right;
+  const chartRight = bounds.width - padding.right;
+  const chartWidth = chartRight - padding.left;
   const chartHeight = bounds.height - padding.top - padding.bottom;
 
   context.textBaseline = "middle";
@@ -255,24 +265,41 @@ function drawTrend() {
     context.lineWidth = 1;
     context.beginPath();
     context.moveTo(padding.left, y + 0.5);
-    context.lineTo(bounds.width - padding.right, y + 0.5);
+    context.lineTo(chartRight, y + 0.5);
     context.stroke();
     context.fillStyle = "#8f988f";
     context.textAlign = "right";
-    context.fillText(tickLabels[index], padding.left - 8, y);
+    context.fillText(inputTickLabels[index], padding.left - 8, y);
+    context.textAlign = "left";
+    context.fillText(outputTickLabels[index], chartRight + 8, y);
   }
 
+  // The axis titles make the independent magnitudes explicit, while keeping
+  // the series titles and colors aligned with the existing legend.
+  context.font = "650 10px ui-sans-serif, system-ui";
+  context.textBaseline = "top";
+  context.textAlign = "left";
+  context.fillStyle = "#c9f36b";
+  context.fillText(t("legend.input"), padding.left, 0);
+  context.textAlign = "right";
+  context.fillStyle = "#ff7658";
+  context.fillText(t("legend.output"), chartRight, 0);
+
   const step = chartWidth / data.length;
-  const barWidth = Math.max(1.5, Math.min(18, step * 0.62));
+  const groupWidth = Math.min(18, step * 0.64);
+  const barGap = Math.max(1, groupWidth * 0.12);
+  const barWidth = Math.max(1.5, (groupWidth - barGap) / 2);
+  const bottom = padding.top + chartHeight;
   data.forEach((item, index) => {
-    const x = padding.left + step * index + (step - barWidth) / 2;
-    const inputHeight = (item.inputTokens / maximum) * chartHeight;
-    const outputHeight = (item.outputTokens / maximum) * chartHeight;
-    const bottom = padding.top + chartHeight;
+    const center = padding.left + step * index + step / 2;
+    const inputX = center - barGap / 2 - barWidth;
+    const outputX = center + barGap / 2;
+    const inputHeight = (item.inputTokens / inputMaximum) * chartHeight;
+    const outputHeight = (item.outputTokens / outputMaximum) * chartHeight;
     context.fillStyle = "#c9f36b";
-    context.fillRect(x, bottom - inputHeight, barWidth, inputHeight);
+    context.fillRect(inputX, bottom - inputHeight, barWidth, inputHeight);
     context.fillStyle = "#ff7658";
-    context.fillRect(x, bottom - inputHeight - outputHeight, barWidth, outputHeight);
+    context.fillRect(outputX, bottom - outputHeight, barWidth, outputHeight);
   });
 
   const labelCount = Math.min(5, data.length);

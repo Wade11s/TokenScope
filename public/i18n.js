@@ -5,7 +5,7 @@
 // Dynamic JS-built strings (status labels, empty states, toasts, drill-down
 // document.title) render through t(key, params) via the bridge (WADE-25);
 // {name} placeholders in dictionary values are interpolated by t().
-// Locale-aware date/weekday/month formatters (WADE-26) live here so both
+// Locale-aware date/month formatters (WADE-26) live here so both
 // the static bindings and app.js share one Intl locale. Numbers come from
 // public/format.js (complete figures / English compact scale) and are
 // re-exported on the bridge. Harness coverage tooltip descriptions
@@ -45,7 +45,6 @@ const HTML_LANGS = { zh: "zh-CN", en: "en" };
 let dateFormatter;
 let monthFormatter;
 let timeFormatter;
-let weekdayFormatter;
 let currentLocale = DEFAULT_LOCALE;
 
 function intlLocale() {
@@ -64,10 +63,6 @@ function rebuildDateFormatters() {
     day: "numeric",
     hour: "2-digit",
     minute: "2-digit",
-  });
-  weekdayFormatter = new Intl.DateTimeFormat(loc, {
-    weekday: "short",
-    timeZone: "UTC",
   });
 }
 
@@ -109,7 +104,7 @@ export const dictionaries = {
     "legend.aria": "图例",
     "legend.input": "输入",
     "legend.output": "输出",
-    "trend.chart.aria": "每日 token 消耗柱状图",
+    "trend.chart.aria": "每日 token 消耗柱状图，输入和输出使用独立刻度",
     "trend.empty": "这个时间范围内还没有可见用量。",
     "panel.composition": "构成",
     "composition.aria": "构成维度",
@@ -241,7 +236,7 @@ export const dictionaries = {
     "legend.aria": "Legend",
     "legend.input": "Input",
     "legend.output": "Output",
-    "trend.chart.aria": "Daily token usage bar chart",
+    "trend.chart.aria": "Daily token usage bar chart with independent input and output scales",
     "trend.empty": "No visible usage in this range yet.",
     "panel.composition": "Composition",
     "composition.aria": "Composition dimension",
@@ -390,40 +385,6 @@ export function formatDateTime(date) {
   return timeFormatter.format(date);
 }
 
-// GitHub-style heatmap row: labels on Mon/Wed/Fri only (周一/周三/周五 in zh).
-// 2024-01-01 is a Monday in UTC.
-const WEEKDAY_LABEL_INDEXES = new Set([0, 2, 4]);
-const WEEKDAY_ANCHOR_UTC = Date.UTC(2024, 0, 1);
-
-export function weekdayMarkers() {
-  return [0, 1, 2, 3, 4, 5, 6].map((offset) => {
-    if (!WEEKDAY_LABEL_INDEXES.has(offset)) return "";
-    return weekdayFormatter.format(
-      new Date(WEEKDAY_ANCHOR_UTC + offset * 86_400_000),
-    );
-  });
-}
-
-function applyWeekdayLabels(root) {
-  const host = root.querySelector("#activityWeekdays") || root.querySelector(".activity-weekdays");
-  if (!host) return;
-  const labels = weekdayMarkers();
-  const spans = host.querySelectorAll("span");
-  if (spans.length === labels.length) {
-    labels.forEach((label, index) => {
-      spans[index].textContent = label;
-    });
-    return;
-  }
-  host.replaceChildren(
-    ...labels.map((label) => {
-      const span = document.createElement("span");
-      span.textContent = label;
-      return span;
-    }),
-  );
-}
-
 export function applyStaticBindings(root = document) {
   root.querySelectorAll("[data-i18n]").forEach((node) => {
     node.textContent = t(node.dataset.i18n);
@@ -440,7 +401,6 @@ export function applyStaticBindings(root = document) {
       if (attribute && key) node.setAttribute(attribute, t(key));
     });
   });
-  applyWeekdayLabels(root);
 }
 
 function readStoredLocale() {
@@ -538,6 +498,5 @@ if (typeof window !== "undefined") {
     formatMetric,
     compactScale,
     formatAxisTick,
-    weekdayMarkers,
   };
 }

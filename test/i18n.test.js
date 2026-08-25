@@ -17,7 +17,6 @@ import {
   has,
   normalizeLocale,
   t,
-  weekdayMarkers,
 } from "../public/i18n.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -145,17 +144,15 @@ test("dynamic-string keys used by app.js exist in both dictionaries", async () =
   }
 });
 
-test("dates, months, and weekday markers follow the current locale via Intl", () => {
+test("dates and months follow the current locale via Intl", () => {
   applyLocale("zh");
   assert.equal(formatDay("2026-03-05"), "3月5日");
   assert.equal(formatMonthLabel(new Date("2026-03-05T12:00:00")), "3月");
-  assert.deepEqual(weekdayMarkers(), ["周一", "", "周三", "", "周五", "", ""]);
   assert.match(formatDateTime(new Date("2026-03-05T15:04:00")), /3月5日/);
 
   applyLocale("en");
   assert.equal(formatDay("2026-03-05"), "Mar 5");
   assert.equal(formatMonthLabel(new Date("2026-03-05T12:00:00")), "Mar");
-  assert.deepEqual(weekdayMarkers(), ["Mon", "", "Wed", "", "Fri", "", ""]);
   assert.match(formatDateTime(new Date("2026-03-05T15:04:00")), /Mar 5/);
   assert.equal(formatDay(""), t("range.noHistory"));
   applyLocale("zh");
