@@ -1,4 +1,28 @@
-.cache/
-.DS_Store
+# Dependencies
 node_modules/
+
+# Runtime data
+.cache/
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+
+# Logs and test output
+*.log
 npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+coverage/
+.nyc_output/
+
+# Local tools and editors
+.commandcode/
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
