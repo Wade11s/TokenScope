@@ -54,6 +54,20 @@ test("zh and en dictionaries cover the same keys", () => {
   assert.deepEqual([...zhKeys].filter((key) => !enKeys.has(key)), []);
 });
 
+test("the topbar language control is a dropdown of supported locales", async () => {
+  const html = await readFile(path.join(ROOT, "public", "index.html"), "utf8");
+  assert.match(html, /<select\b[^>]*\bid="localeSelect"/);
+  assert.match(html, /data-i18n-aria="lang.select.aria"/);
+  assert.doesNotMatch(html, /id="langToggle"|class="lang-toggle"|data-lang-option/);
+  for (const locale of SUPPORTED_LOCALES) {
+    assert.match(html, new RegExp(`<option\\b[^>]*\\bvalue="${locale}"`));
+  }
+  const source = await readFile(path.join(ROOT, "public", "i18n.js"), "utf8");
+  assert.match(source, /getElementById\("localeSelect"\)/);
+  assert.match(source, /addEventListener\("change"/);
+  assert.doesNotMatch(source, /langToggle|lang\.toggle/);
+});
+
 test("every i18n marker in index.html resolves to a dictionary key", async () => {
   const html = await readFile(path.join(ROOT, "public", "index.html"), "utf8");
   const keys = markerKeys(html);

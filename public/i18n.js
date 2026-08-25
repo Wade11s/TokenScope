@@ -1,7 +1,7 @@
 // Static-chrome i18n core for TokenScope (WADE-24).
 //
 // Owns the zh/en dictionaries for copy that lives in index.html, the
-// topbar language toggle, localStorage persistence, and <html lang> sync.
+// topbar locale dropdown, localStorage persistence, and <html lang> sync.
 // Dynamic JS-built strings (status labels, empty states, toasts, drill-down
 // document.title) render through t(key, params) via the bridge (WADE-25);
 // {name} placeholders in dictionary values are interpolated by t().
@@ -90,7 +90,9 @@ export const dictionaries = {
     "range.90d": "90 天",
     "range.all": "全部",
     "action.refresh": "刷新",
-    "lang.toggle.aria": "切换语言",
+    "lang.select.aria": "语言",
+    "lang.zh": "中文",
+    "lang.en": "English",
     "view.overview.aria": "总览",
     "view.rank.aria": "排行",
     "view.harness.aria": "Harness 下钻",
@@ -220,7 +222,9 @@ export const dictionaries = {
     "range.90d": "90 days",
     "range.all": "All",
     "action.refresh": "Refresh",
-    "lang.toggle.aria": "Switch language",
+    "lang.select.aria": "Language",
+    "lang.zh": "中文",
+    "lang.en": "English",
     "view.overview.aria": "Overview",
     "view.rank.aria": "Rank",
     "view.harness.aria": "Harness drill-down",
@@ -456,10 +460,10 @@ function persistLocale(locale) {
   }
 }
 
-function syncLangToggle() {
-  document.querySelectorAll("[data-lang-option]").forEach((option) => {
-    option.classList.toggle("active", option.dataset.langOption === currentLocale);
-  });
+function syncLocaleSelect() {
+  const select = document.getElementById("localeSelect");
+  if (!select) return;
+  select.value = currentLocale;
 }
 
 function notifyLocaleChange(locale) {
@@ -476,7 +480,7 @@ export function onLocaleChange(handler) {
   return () => localeChangeHandlers.delete(handler);
 }
 
-// Switch locale: persist, sync <html lang> and the toggle, rebind all static
+// Switch locale: persist, sync <html lang> and the dropdown, rebind all static
 // chrome, then notify listeners (app.js re-renders the current view).
 export function applyLocale(lang) {
   const next = normalizeLocale(lang);
@@ -486,30 +490,30 @@ export function applyLocale(lang) {
     persistLocale(next);
     document.documentElement.lang = HTML_LANGS[next];
     applyStaticBindings(document);
-    syncLangToggle();
+    syncLocaleSelect();
     notifyLocaleChange(next);
   }
   return currentLocale;
 }
 
-function wireLangToggle() {
-  const button = document.getElementById("langToggle");
-  if (!button) return;
-  button.addEventListener("click", () => {
-    applyLocale(currentLocale === "zh" ? "en" : "zh");
+function wireLocaleSelect() {
+  const select = document.getElementById("localeSelect");
+  if (!select) return;
+  select.addEventListener("change", (event) => {
+    applyLocale(event.target.value);
   });
 }
 
 // Restore the persisted preference (default zh), bind static chrome, and wire
-// the toggle. Runs once at module evaluation; the DOM is already parsed
-// because module scripts are deferred.
+// the locale dropdown. Runs once at module evaluation; the DOM is already
+// parsed because module scripts are deferred.
 export function initI18n() {
   currentLocale = readStoredLocale() || DEFAULT_LOCALE;
   rebuildDateFormatters();
   document.documentElement.lang = HTML_LANGS[currentLocale];
   applyStaticBindings(document);
-  wireLangToggle();
-  syncLangToggle();
+  wireLocaleSelect();
+  syncLocaleSelect();
   return currentLocale;
 }
 
