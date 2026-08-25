@@ -154,3 +154,20 @@ axe-core WCAG 2 A/AA 审计报告 1 个规则、4 个节点的明确失败：`#r
 - 顶部时间范围在排行视图内切换（7 天）正常重取并重渲染，tab 选择保持；控制台无错误；390px 宽度无横向溢出。
 - `npm run check`：语法检查 + 49/49 测试通过。
 - 截图：`screenshots/wade-21/rank-provider.png`、`rank-model-expanded.png`、`rank-harness.png`、`rank-lower-bound.png`、`rank-model-expanded-mobile.png`。
+
+---
+
+## 2026-08-25 · 每日趋势 Y 轴英文进位刻度（WADE-32）
+
+`drawTrend` 保持 `compactScale` / `formatAxisTick`（共享系列最大值推导的单一刻度尺，K/M/B/T，最多一位小数，无空格），并将固定 47px 左侧留白改为按最宽刻度标签实测宽度推导（`max(47, ceil(最宽标签) + 10)`）：无论平台字体度量如何，最高与全部低刻度都完整落在画布内。同步将 `app.js` 缓存参数升至 `?v=18`。
+
+**验证内容**（agent-browser，合成数据快照经真实 `createTokenScopeServer` scan seam 注入：十亿级下界 / 999.5K 边界 / 848.4M 最宽标签 / 小于 1K / 空范围）
+
+- 十亿级下界（最高日 2.42B，`inputKnown: false`）：刻度 `2.4B / 1.8B / 1.2B / 0.6B / 0` 共享 B 尺，画布位图墨迹扫描最左刻度像素 x≈17px，无裁切。
+- 边界 K 尺（最高日 999,499）：`999.5K / 749.6K / 499.7K / 249.9K / 0` 共享 K 尺，左侧余量 ≥4px。
+- 最宽标签场景（最高日 848,379,175）：`848.4M / 636.3M / 424.2M / 212.1M / 0`，实测最宽 37.4px，左留白自动 47→48px，墨迹最左 x≈3px，证明动态留白生效且结构性不可裁切。
+- 小数值（最高日 843）：`843 / 632 / 422 / 211 / 0`（<1K 无后缀），零恒为 `0`。
+- 空范围：canvas 隐藏、「这个时间范围内还没有可见用量。」空状态保持；zh/EN 两语言刻度一致（数字与 locale 无关）；控制台无错误。
+- 全场景下限核算：`labelRightEdge(=left-8) - 最宽标签 ≥ 2px`，最低刻度与最高刻度均完整可见。
+- `npm run check`：语法检查 + 70/70 测试通过（axis-tick formatter 用例保持绿）。
+- 截图：`screenshots/wade-32-billion-lower-bound.png`、`wade-32-wide-m-ticks.png`、`wade-32-kmax-ticks.png`、`wade-32-empty-state.png`、`wade-32-billion-en.png`。

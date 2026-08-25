@@ -206,17 +206,32 @@ function drawTrend() {
   context.setTransform(ratio, 0, 0, ratio, 0, 0);
   context.clearRect(0, 0, bounds.width, bounds.height);
 
-  const padding = { top: 10, right: 8, bottom: 31, left: 47 };
-  const chartWidth = bounds.width - padding.left - padding.right;
-  const chartHeight = bounds.height - padding.top - padding.bottom;
   const maximum = Math.max(...data.map((item) => item.knownTokens), 1);
   const axisScale = compactScale(maximum);
 
   context.font = "10px ui-sans-serif, system-ui";
+  // Compact-scale ticks all share the series-maximum scale; size the left
+  // gutter from the widest measured tick label so no tick can clip at the
+  // chart edge, whatever the platform font metrics.
+  const tickLabels = [];
+  for (let index = 0; index <= 4; index += 1) {
+    tickLabels.push(formatAxisTick(maximum * (1 - index / 4), axisScale));
+  }
+  const widestTick = Math.ceil(
+    Math.max(...tickLabels.map((label) => context.measureText(label).width)),
+  );
+  const padding = {
+    top: 10,
+    right: 8,
+    bottom: 31,
+    left: Math.max(47, widestTick + 10),
+  };
+  const chartWidth = bounds.width - padding.left - padding.right;
+  const chartHeight = bounds.height - padding.top - padding.bottom;
+
   context.textBaseline = "middle";
   for (let index = 0; index <= 4; index += 1) {
     const y = padding.top + (chartHeight / 4) * index;
-    const value = maximum * (1 - index / 4);
     context.strokeStyle = "rgba(255, 255, 255, 0.07)";
     context.lineWidth = 1;
     context.beginPath();
@@ -225,7 +240,7 @@ function drawTrend() {
     context.stroke();
     context.fillStyle = "#8f988f";
     context.textAlign = "right";
-    context.fillText(formatAxisTick(value, axisScale), padding.left - 8, y);
+    context.fillText(tickLabels[index], padding.left - 8, y);
   }
 
   const step = chartWidth / data.length;
