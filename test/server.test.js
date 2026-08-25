@@ -126,11 +126,32 @@ test("dashboard modules required by the first paint are served", async () => {
   const server = await startServer();
   try {
     const { port } = server.address();
-    for (const pathname of ["/app.js", "/i18n.js", "/format.js", "/styles.css"]) {
+    for (const pathname of ["/app.js", "/i18n.js", "/format.js", "/harness-marks.js", "/styles.css"]) {
       const response = await fetch(`http://127.0.0.1:${port}${pathname}`);
       assert.equal(response.status, 200, pathname);
       assert.match(response.headers.get("content-type"), /javascript|css/);
     }
+  } finally {
+    server.close();
+  }
+});
+
+test("vendored Harness logos are served locally without path traversal", async () => {
+  const server = await startServer();
+  try {
+    const { port } = server.address();
+    const logo = await fetch(`http://127.0.0.1:${port}/logos/codex.svg`);
+    assert.equal(logo.status, 200);
+    assert.match(logo.headers.get("content-type"), /svg/);
+    const body = await logo.text();
+    assert.match(body, /<svg/);
+    assert.doesNotMatch(body, /cdn\.jsdelivr|unpkg\.com|githubusercontent/i);
+
+    const missing = await fetch(`http://127.0.0.1:${port}/logos/no-such-harness.svg`);
+    assert.equal(missing.status, 404);
+
+    const nested = await fetch(`http://127.0.0.1:${port}/logos/foo/bar.svg`);
+    assert.equal(nested.status, 404);
   } finally {
     server.close();
   }

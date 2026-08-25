@@ -99,6 +99,46 @@ test("report filters harnesses without changing source range totals", () => {
   assert.equal(report.sources.find((source) => source.id === "copilot").selected, false);
 });
 
+test("report sources on 总览 order by range usage with zeros last", () => {
+  const base = snapshot([
+    makeRecord({
+      timestamp: "2026-08-20T12:00:00+08:00",
+      harness: "codex",
+      provider: "openai",
+      model: "gpt-test",
+      inputTokens: 40,
+      outputTokens: 10,
+      sessionId: "one",
+    }),
+    makeRecord({
+      timestamp: "2026-08-20T12:00:00+08:00",
+      harness: "copilot",
+      provider: "github-copilot",
+      model: "claude-test",
+      inputTokens: 200,
+      outputTokens: 20,
+      sessionId: "two",
+    }),
+  ]);
+  base.sources.push({
+    id: "cursor",
+    name: "Cursor",
+    detected: true,
+    coverage: "unavailable",
+  });
+
+  const report = buildReport(base, {
+    range: "today",
+    now: new Date("2026-08-20T12:00:00+08:00"),
+  });
+
+  assert.deepEqual(
+    report.sources.map((source) => source.id),
+    ["copilot", "codex", "cursor"],
+  );
+  assert.equal(report.sources[2].rangeKnownTokens, 0);
+});
+
 test("a selected unavailable source makes an otherwise exact total a lower bound", () => {
   const base = snapshot([
     makeRecord({

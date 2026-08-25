@@ -71,31 +71,23 @@ const STATUS_LABEL_KEYS = {
 // grouped full figures even if the i18n bridge fails to load.
 const fallbackFullFormatter = new Intl.NumberFormat("en");
 
-// Local CSS monograms keep the card marks deterministic and offline. The keys
-// are stable adapter ids, not display names, so a renamed Harness keeps its mark.
-const HARNESS_MARKS = Object.freeze({
-  codex: "CX",
-  claude: "CL",
-  gemini: "G",
-  grok: "GK",
-  kimi: "KM",
-  pi: "π",
-  hermes: "H",
-  droid: "D",
-  fx: "FX",
-  copilot: "CP",
-  continue: "CT",
-  omp: "OM",
-  opencode: "OC",
-  cursor: "CU",
-  aider: "AI",
-});
+function harnessLogoSrc(id) {
+  return window.tokenscopeHarness
+    ? window.tokenscopeHarness.harnessLogoSrc(id)
+    : null;
+}
 
-function harnessMark(id) {
-  const knownMark = HARNESS_MARKS[id];
-  if (knownMark) return knownMark;
+function harnessMarkFallback(id) {
+  if (window.tokenscopeHarness) return window.tokenscopeHarness.harnessMarkFallback(id);
   const fallback = String(id || "").replace(/[^a-z0-9]/gi, "").slice(0, 2);
   return fallback ? fallback.toUpperCase() : "?";
+}
+
+function sortSourcesByRangeUsage(sources) {
+  if (window.tokenscopeHarness) {
+    return window.tokenscopeHarness.sortSourcesByRangeUsage(sources);
+  }
+  return [...sources];
 }
 
 function formatCompact(value) {
@@ -688,7 +680,7 @@ function sourceTooltipDescription(source) {
 
 function renderSources() {
   clear(elements.sourceGrid);
-  state.report.sources.forEach((source) => {
+  sortSourcesByRangeUsage(state.report.sources).forEach((source) => {
     const selected = state.selectedHarnesses.has(source.id);
     const statusKey = STATUS_LABEL_KEYS[source.status];
     const statusText = statusKey ? t(statusKey) : source.status;
@@ -723,8 +715,14 @@ function renderSources() {
     const mark = document.createElement("span");
     mark.className = "harness-mark";
     mark.dataset.harnessId = source.id;
-    mark.textContent = harnessMark(source.id);
     mark.setAttribute("aria-hidden", "true");
+    const logoSrc = harnessLogoSrc(source.id);
+    if (logoSrc) {
+      mark.classList.add("harness-mark-logo");
+      mark.style.setProperty("--harness-logo", `url("${logoSrc}")`);
+    } else {
+      mark.textContent = harnessMarkFallback(source.id);
+    }
 
     const body = document.createElement("span");
     body.className = "harness-card-body";

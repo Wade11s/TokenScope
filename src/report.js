@@ -1,4 +1,5 @@
 import { addUsage, emptyUsage, usageTotal } from "./lib/usage.js";
+import { sortSourcesByRangeUsage } from "../public/harness-marks.js";
 
 const RANGE_DAYS = {
   today: 1,
@@ -227,16 +228,18 @@ export function buildReport(
       (record) => ({ name: record.harness }),
     ).map((group) => [group.name, group]),
   );
-  const sources = snapshot.sources.map((source) => {
-    const totals = rangeByHarness.get(source.id);
-    return {
-      ...source,
-      selected: selectedHarnesses.has(source.id),
-      rangeKnownTokens: totals?.knownTokens || 0,
-      rangeRequests: totals?.requests || 0,
-      rangeComplete: totals?.complete ?? source.coverage === "full",
-    };
-  });
+  const sources = sortSourcesByRangeUsage(
+    snapshot.sources.map((source) => {
+      const totals = rangeByHarness.get(source.id);
+      return {
+        ...source,
+        selected: selectedHarnesses.has(source.id),
+        rangeKnownTokens: totals?.knownTokens || 0,
+        rangeRequests: totals?.requests || 0,
+        rangeComplete: totals?.complete ?? source.coverage === "full",
+      };
+    }),
+  );
 
   return {
     generatedAt: snapshot.generatedAt,
