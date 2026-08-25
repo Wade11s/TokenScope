@@ -54,6 +54,20 @@ test("zh and en dictionaries cover the same keys", () => {
   assert.deepEqual([...zhKeys].filter((key) => !enKeys.has(key)), []);
 });
 
+test("the topbar language control is a dropdown of supported locales", async () => {
+  const html = await readFile(path.join(ROOT, "public", "index.html"), "utf8");
+  assert.match(html, /<select\b[^>]*\bid="localeSelect"/);
+  assert.match(html, /data-i18n-aria="lang.select.aria"/);
+  assert.doesNotMatch(html, /id="langToggle"|class="lang-toggle"|data-lang-option/);
+  for (const locale of SUPPORTED_LOCALES) {
+    assert.match(html, new RegExp(`<option\\b[^>]*\\bvalue="${locale}"`));
+  }
+  const source = await readFile(path.join(ROOT, "public", "i18n.js"), "utf8");
+  assert.match(source, /getElementById\("localeSelect"\)/);
+  assert.match(source, /addEventListener\("change"/);
+  assert.doesNotMatch(source, /langToggle|lang\.toggle/);
+});
+
 test("every i18n marker in index.html resolves to a dictionary key", async () => {
   const html = await readFile(path.join(ROOT, "public", "index.html"), "utf8");
   const keys = markerKeys(html);
@@ -131,11 +145,11 @@ test("dynamic-string keys used by app.js exist in both dictionaries", async () =
   }
 });
 
-test("dates, months, and weekdays follow the current locale via Intl", () => {
+test("dates, months, and weekday markers follow the current locale via Intl", () => {
   applyLocale("zh");
   assert.equal(formatDay("2026-03-05"), "3月5日");
   assert.equal(formatMonthLabel(new Date("2026-03-05T12:00:00")), "3月");
-  assert.deepEqual(weekdayMarkers(), ["一", "", "三", "", "五", "", ""]);
+  assert.deepEqual(weekdayMarkers(), ["周一", "", "周三", "", "周五", "", ""]);
   assert.match(formatDateTime(new Date("2026-03-05T15:04:00")), /3月5日/);
 
   applyLocale("en");
