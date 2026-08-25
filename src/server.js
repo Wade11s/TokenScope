@@ -14,8 +14,11 @@ const STATIC_FILES = new Map([
   ["/app.js", ["app.js", "text/javascript; charset=utf-8"]],
   ["/i18n.js", ["i18n.js", "text/javascript; charset=utf-8"]],
   ["/format.js", ["format.js", "text/javascript; charset=utf-8"]],
+  ["/harness-marks.js", ["harness-marks.js", "text/javascript; charset=utf-8"]],
   ["/styles.css", ["styles.css", "text/css; charset=utf-8"]],
 ]);
+
+const LOGO_ROUTE = /^\/logos\/([a-z0-9-]+)\.svg$/;
 
 const SECURITY_HEADERS = {
   "Content-Security-Policy":
@@ -34,9 +37,7 @@ function sendJson(response, status, value) {
   response.end(JSON.stringify(value));
 }
 
-async function sendStatic(response, route) {
-  const [fileName, contentType] = STATIC_FILES.get(route);
-  const filePath = path.join(PUBLIC_ROOT, fileName);
+async function sendFile(response, filePath, contentType) {
   const fileStat = await stat(filePath);
   response.writeHead(200, {
     ...SECURITY_HEADERS,
@@ -45,6 +46,19 @@ async function sendStatic(response, route) {
     "Cache-Control": "no-cache",
   });
   createReadStream(filePath).pipe(response);
+}
+
+async function sendStatic(response, route) {
+  const [fileName, contentType] = STATIC_FILES.get(route);
+  await sendFile(response, path.join(PUBLIC_ROOT, fileName), contentType);
+}
+
+async function sendLogo(response, fileName) {
+  await sendFile(
+    response,
+    path.join(PUBLIC_ROOT, "logos", fileName),
+    "image/svg+xml; charset=utf-8",
+  );
 }
 
 export function createTokenScopeServer({
@@ -108,6 +122,20 @@ export function createTokenScopeServer({
 
       if (STATIC_FILES.has(requestUrl.pathname)) {
         await sendStatic(response, requestUrl.pathname);
+        return;
+      }
+
+      const logoMatch = requestUrl.pathname.match(LOGO_ROUTE);
+      if (logoMatch) {
+        try {
+          await sendLogo(response, `${logoMatch[1]}.svg`);
+        } catch (error) {
+          if (error?.code === "ENOENT") {
+            sendJson(response, 404, { error: "Not found." });
+            return;
+          }
+          throw error;
+        }
         return;
       }
 

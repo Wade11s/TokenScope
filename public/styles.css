@@ -1008,6 +1008,15 @@ h1 {
   user-select: none;
 }
 
+.harness-mark-logo::after {
+  content: "";
+  width: 22px;
+  height: 22px;
+  background: currentColor;
+  -webkit-mask: var(--harness-logo) center / contain no-repeat;
+  mask: var(--harness-logo) center / contain no-repeat;
+}
+
 .source-codex { --harness-mark-background: #24331b; --harness-mark-border: #4d6a2a; --harness-mark-color: #c9f36b; }
 .source-claude { --harness-mark-background: #34261f; --harness-mark-border: #78513b; --harness-mark-color: #f1b17d; }
 .source-gemini { --harness-mark-background: #1b2d3e; --harness-mark-border: #3d6689; --harness-mark-color: #78a9ff; }
