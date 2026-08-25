@@ -778,10 +778,6 @@ h1 {
   margin-bottom: 10px;
   --activity-cell: 12px;
   --activity-gap: 3px;
-  --activity-weekday: 18px;
-}
-
-html[lang="en"] .activity-panel {
   --activity-weekday: 32px;
 }
 

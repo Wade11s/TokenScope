@@ -66,7 +66,7 @@ function rebuildDateFormatters() {
     minute: "2-digit",
   });
   weekdayFormatter = new Intl.DateTimeFormat(loc, {
-    weekday: loc === "zh-CN" ? "narrow" : "short",
+    weekday: "short",
     timeZone: "UTC",
   });
 }
@@ -390,7 +390,7 @@ export function formatDateTime(date) {
   return timeFormatter.format(date);
 }
 
-// GitHub-style heatmap row: labels on Mon/Wed/Fri only (一/三/五 in zh).
+// GitHub-style heatmap row: labels on Mon/Wed/Fri only (周一/周三/周五 in zh).
 // 2024-01-01 is a Monday in UTC.
 const WEEKDAY_LABEL_INDEXES = new Set([0, 2, 4]);
 const WEEKDAY_ANCHOR_UTC = Date.UTC(2024, 0, 1);
