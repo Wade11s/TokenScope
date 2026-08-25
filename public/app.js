@@ -67,6 +67,10 @@ const STATUS_LABEL_KEYS = {
   absent: "status.absent",
 };
 
+// Fallbacks mirror public/format.js so overview metrics still render
+// grouped full figures even if the i18n bridge fails to load.
+const fallbackFullFormatter = new Intl.NumberFormat("en");
+
 function formatCompact(value) {
   return window.tokenscopeI18n
     ? window.tokenscopeI18n.formatCompact(value)
@@ -76,7 +80,7 @@ function formatCompact(value) {
 function formatFull(value) {
   return window.tokenscopeI18n
     ? window.tokenscopeI18n.formatFull(value)
-    : String(Math.round(Number(value) || 0));
+    : fallbackFullFormatter.format(Math.round(Number(value) || 0));
 }
 
 function formatKnown(value, known) {

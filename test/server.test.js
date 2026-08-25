@@ -135,3 +135,26 @@ test("dashboard modules required by the first paint are served", async () => {
     server.close();
   }
 });
+
+// Guards the 完整数字 bridge end to end: if a script referenced by
+// index.html 404s, the i18n module never installs window.tokenscopeI18n
+// and app.js falls back to rendering ungrouped digits.
+test("every asset referenced by index.html is served", async () => {
+  const server = await startServer();
+  try {
+    const { port } = server.address();
+    const html = await (
+      await fetch(`http://127.0.0.1:${port}/index.html`)
+    ).text();
+    const references = [
+      ...html.matchAll(/(?:src|href)="(\/[^"?]+)(?:\?[^"]*)?"/g),
+    ].map((match) => match[1]);
+    assert.ok(references.length > 0, "index.html should reference assets");
+    for (const pathname of new Set(references)) {
+      const response = await fetch(`http://127.0.0.1:${port}${pathname}`);
+      assert.equal(response.status, 200, pathname);
+    }
+  } finally {
+    server.close();
+  }
+});
